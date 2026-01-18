@@ -1,4 +1,4 @@
-import 'package:easy_flutter_boilerplate/app/core/state_management/ViewModel.dart';
+import 'package:easy_flutter_boilerplate/app/core/state_management/viewModel.dart';
 import 'package:easy_flutter_boilerplate/app/presentation/modules/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -22,13 +22,6 @@ final GoRouter appRouter = GoRouter(
         return const SplashScreen();
       },
     ),
-    // ScreenBuilder<LandingScreen>(
-    //   path: AppRoutes.landing.path,
-    //   name: AppRoutes.landing.name,
-    //   screenBuilder: (BuildContext context, GoRouterState state) {
-    //     return const LandingScreen();
-    //   },
-    // ),
     ScreenBuilder<OrderScreen>(
       path: AppRoutes.order.path,
       name: AppRoutes.order.name,
