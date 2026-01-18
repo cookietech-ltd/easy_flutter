@@ -1,15 +1,12 @@
-import 'package:easy_flutter_boilerplate/app/di/dependency_provider/dependency_provider.dart';
+import 'package:easy_flutter_boilerplate/app/core/state_management/ViewModel.dart';
 import 'package:flutter/material.dart';
-import '/app/core/base/base_view_model.dart';
-abstract class BaseState<T extends StatefulWidget, C extends BaseViewModel>
-    extends State<T> {
-  late final C viewModel;
 
+
+abstract class BaseState<T extends StatefulWidget> extends State<T> {
+  final List<ViewModel> viewModelRefs = [];
 
   @override
   void initState() {
-    viewModel = locator.get<C>();
-
     initializeListener();
     super.initState();
   }
@@ -17,10 +14,26 @@ abstract class BaseState<T extends StatefulWidget, C extends BaseViewModel>
   @override
   void dispose() {
     removeListener();
+
+    for (final vm in viewModelRefs) {
+      if (!vm.isShared) {
+        vm.dispose();
+      }
+    }
+
+    viewModelRefs.clear();
     super.dispose();
   }
 
   void initializeListener() {}
 
   void removeListener() {}
+
+  /// Creates a ViewModel, tracks it, and returns it
+  V factoryViewModel<V extends ViewModel>(V Function() create) {
+    final vm = create();
+    viewModelRefs.add(vm);
+    return vm;
+  }
 }
+

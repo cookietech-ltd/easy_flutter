@@ -1,3 +1,3 @@
-import 'package:easy_flutter_boilerplate/app/core/base/screen_view_model.dart';
+import 'package:easy_flutter_boilerplate/app/core/state_management/ViewModel.dart';
 
-class HomeViewModel extends ScreenViewModel {}
+class HomeViewModel extends ViewModel {}

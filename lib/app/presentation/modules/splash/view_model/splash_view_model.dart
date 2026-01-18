@@ -1,10 +1,3 @@
-import 'package:easy_flutter_boilerplate/app/core/base/screen_view_model.dart';
+import 'package:easy_flutter_boilerplate/app/core/state_management/ViewModel.dart';
 
-class SplashViewModel extends ScreenViewModel {
-
-  @override
-  void onDispose() {
-    // TODO: implement onDispose
-    super.onDispose();
-  }
-}
+class SplashViewModel extends ViewModel {}

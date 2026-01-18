@@ -1,5 +1,4 @@
 import 'package:easy_flutter_boilerplate/app/core/base/screen_state.dart';
-import 'package:easy_flutter_boilerplate/app/presentation/modules/splash/view_model/splash_view_model.dart';
 import 'package:easy_flutter_boilerplate/app/presentation/shared/widget/animated_hello/animated_hello.dart';
 import 'package:easy_flutter_boilerplate/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +11,7 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ScreenState<SplashScreen, SplashViewModel> {
+class _SplashScreenState extends ScreenState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

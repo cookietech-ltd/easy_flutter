@@ -1,5 +1,4 @@
 import 'package:easy_flutter_boilerplate/app/core/base/screen_state.dart';
-import 'package:easy_flutter_boilerplate/app/presentation/modules/order/view_model/order_view_model.dart';
 import 'package:easy_flutter_boilerplate/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +10,7 @@ class OrderScreen extends StatefulWidget {
   State<OrderScreen> createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends ScreenState<OrderScreen, OrderViewModel> {
+class _OrderScreenState extends ScreenState<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
