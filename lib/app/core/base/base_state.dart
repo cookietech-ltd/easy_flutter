@@ -1,4 +1,4 @@
-import 'package:easy_flutter_boilerplate/app/core/state_management/viewModel.dart';
+import 'package:easy_flutter_boilerplate/app/core/state_management/view_model.dart';
 import 'package:flutter/material.dart';
 
 
