@@ -3,7 +3,7 @@ import 'package:easy_flutter_boilerplate/app/utils/log.dart';
 import 'package:flutter/widgets.dart';
 
 // ✅ Base ViewModel class
-abstract class ViewModel extends ChangeNotifier {
+abstract class ViewModel {
   ViewModel() {
     onInit();
   }
@@ -17,44 +17,36 @@ abstract class ViewModel extends ChangeNotifier {
 
   MutableState<T> createMutableState<T>({
     required T initialValue,
-    bool propagateChanges = true,
   }) {
     final state = MutableState(
       initialValue: initialValue,
-      onValueChanged: propagateChanges ? notifyListeners : null,
     );
     return track(state); // Register for disposal
   }
 
   MutableListState<T> createMutableListState<T>({
     required List<T> initialValue,
-    bool propagateChanges = true,
   }) {
     final state = MutableListState(
       initialValue: initialValue,
-      onValueChanged: propagateChanges ? notifyListeners : null,
     );
     return track(state); // Register for disposal
   }
 
   MutableMapState<K, V> createMutableMapState<K, V>({
     required Map<K, V> initialValue,
-    bool propagateChanges = true,
   }) {
     final state = MutableMapState(
       initialValue: initialValue,
-      onValueChanged: propagateChanges ? notifyListeners : null,
     );
     return track(state); // Register for disposal
   }
 
   MutableSetState<T> createMutableSetState<T>({
     required Set<T> initialValue,
-    bool propagateChanges = true,
   }) {
     final state = MutableSetState(
       initialValue: initialValue,
-      onValueChanged: propagateChanges ? notifyListeners : null,
     );
     return track(state);
   }
@@ -62,12 +54,10 @@ abstract class ViewModel extends ChangeNotifier {
   CommandState<T> createCommandState<T>({
     T? initialValue,
     AsyncCallback<T>? action,
-    bool propagateChanges = true,
   }) {
     final state = CommandState(
       initialValue: initialValue,
       action: action,
-      onValueChanged: propagateChanges ? notifyListeners : null,
     );
     return track(state); // Register for disposal
   }
@@ -75,12 +65,10 @@ abstract class ViewModel extends ChangeNotifier {
   PagingCommandState<T> createPagingCommandState<T>({
     required PageLoader<T> pageLoader,
     PagingConfig config = const PagingConfig(),
-    bool propagateChanges = true,
   }) {
     final state = PagingCommandState(
       pageLoader: pageLoader,
       config: config,
-      onValueChanged: propagateChanges ? notifyListeners : null,
     );
     return track(state); // Register for disposal
   }
@@ -92,13 +80,11 @@ abstract class ViewModel extends ChangeNotifier {
   bool get isShared => _isShared;
 
   @mustCallSuper
-  @override
   void dispose() {
     for (final state in _ownedStates) {
       state.dispose();
     }
     _ownedStates.clear();
-    super.dispose();
     Log.print('$runtimeType Disposed');
   }
 
