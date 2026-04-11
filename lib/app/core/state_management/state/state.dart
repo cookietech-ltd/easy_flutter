@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:easy_flutter_boilerplate/app/utils/log.dart';
 import 'package:flutter/cupertino.dart';
 import '../result/result.dart';
@@ -13,6 +14,8 @@ abstract class DataState<T> extends ChangeNotifier {
   /// Callback function triggered when the state changes.
   final VoidCallback? _onValueChanged;
 
+  bool _isDisposed = false;
+
   /// Constructor for initializing [BaseState].
   DataState({required T initialValue, VoidCallback? onValueChanged})
     : _onValueChanged = onValueChanged,
@@ -21,8 +24,15 @@ abstract class DataState<T> extends ChangeNotifier {
   /// Returns the current value.
   T get value => _value;
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   /// Notifies listeners about changes in state.
   void _notifyListeners() {
+    if (_isDisposed) return;
     _onValueChanged?.call();
     notifyListeners();
   }
@@ -157,6 +167,8 @@ class CommandState<T> extends DataState<T?> {
     );
   }
 
+  DataState<T?> asImmutable() => this;
+
   @override
   String toString() => 'Result: $_result \nValue: ${super.toString()}';
 }
@@ -243,6 +255,8 @@ class MutableListState<T> extends DataState<List<T>> {
     }
   }
 
+  DataState<List<T>> asImmutable() => this;
+
   @override
   String toString() => _value.toString();
 }
@@ -314,6 +328,8 @@ class MutableMapState<K, V> extends DataState<Map<K, V>> {
     updateFn(_value);
     _notifyListeners();
   }
+
+  DataState<Map<K, V>> asImmutable() => this;
 
   @override
   String toString() => _value.toString();
@@ -431,6 +447,8 @@ class MutableSetState<T> extends DataState<Set<T>> {
 
   /// Creates a [Set] with the same elements and behavior as this set.
   Set<T> toSet() => Set<T>.from(_value);
+
+  DataState<Set<T>> asImmutable() => this;
 
   @override
   String toString() => _value.toString();
@@ -669,7 +687,39 @@ class PagingCommandState<T> extends DataState<List<T>> {
     _notifyListeners();
   }
 
+  DataState<List<T>> asImmutable() => this;
+
   @override
   String toString() =>
       'PagingCommandState(items: ${_value.length}, page: $_currentPage, loading: $_isLoading, endOfList: $_endOfList)';
 }
+
+/// A state that automatically listens to and extracts data from a [Stream].
+class StreamState<T> extends DataState<T> {
+  StreamSubscription<T>? _subscription;
+
+  StreamState({
+    required Stream<T> stream,
+    required super.initialValue,
+    super.onValueChanged,
+  }) {
+    _subscription = stream.listen(
+      (data) {
+        _value = data;
+        _notifyListeners();
+      },
+      onError: (e) {
+        Log.error('StreamState error: $e');
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  DataState<T> asImmutable() => this;
+}
+

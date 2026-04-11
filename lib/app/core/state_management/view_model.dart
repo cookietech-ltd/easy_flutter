@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:easy_flutter_boilerplate/app/core/state_management/state/state.dart';
 import 'package:easy_flutter_boilerplate/app/utils/log.dart';
 import 'package:flutter/widgets.dart';
@@ -62,6 +63,17 @@ abstract class ViewModel {
     return track(state); // Register for disposal
   }
 
+  StreamState<T> createStreamState<T>({
+    required Stream<T> stream,
+    required T initialValue,
+  }) {
+    final state = StreamState<T>(
+      stream: stream,
+      initialValue: initialValue,
+    );
+    return track(state); // Register for disposal
+  }
+
   PagingCommandState<T> createPagingCommandState<T>({
     required PageLoader<T> pageLoader,
     PagingConfig config = const PagingConfig(),
@@ -110,16 +122,16 @@ class SharedViewModelStore {
   SharedViewModelStore._internal();
 
   final Map<Type, _ScopedViewModel> _store = {};
-  final Map<String, Set<Type>> _routeToTypesMap = {};
+  final Map<int, Set<Type>> _routeToTypesMap = {};
   final Map<Type, ViewModel> _overrides = {};
 
   T put<T extends ViewModel>({
     required T viewModel,
-    required String routeName,
+    required int routeId,
   }) {
     viewModel.markAsShared(); // tag it as shared
-    _store[T] = _ScopedViewModel(viewModel, routeName);
-    _routeToTypesMap.putIfAbsent(routeName, () => {}).add(T);
+    _store[T] = _ScopedViewModel(viewModel, routeId);
+    _routeToTypesMap.putIfAbsent(routeId, () => {}).add(T);
     return viewModel;
   }
 
@@ -141,14 +153,14 @@ class SharedViewModelStore {
 
   void clearOverride<T extends ViewModel>() => _overrides.remove(T);
 
-  void disposeByRoute(String routeName) {
-    final types = _routeToTypesMap[routeName];
+  void disposeByRouteId(int routeId) {
+    final types = _routeToTypesMap[routeId];
     if (types != null) {
       for (final type in types) {
         _store[type]?.vm.dispose();
         _store.remove(type);
       }
-      _routeToTypesMap.remove(routeName);
+      _routeToTypesMap.remove(routeId);
     }
   }
 
@@ -164,9 +176,9 @@ class SharedViewModelStore {
 
 class _ScopedViewModel {
   final ViewModel vm;
-  final String routeName;
+  final int routeId;
 
-  _ScopedViewModel(this.vm, this.routeName);
+  _ScopedViewModel(this.vm, this.routeId);
 }
 
 // ✅ Route Observer for flow-wide ViewModel cleanup
@@ -196,10 +208,9 @@ class ViewModelRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     _ensureMarked();
     final name = route.settings.name;
-    if (name != null) {
-      debugPrint('Popping Route: $name');
-      SharedViewModelStore().disposeByRoute(name);
-    }
+    final id = route.hashCode;
+    debugPrint('Popping Route ID: $id (name: $name)');
+    SharedViewModelStore().disposeByRouteId(id);
   }
 }
 
@@ -264,14 +275,14 @@ extension ViewModelCreationExtension on BuildContext {
       return SharedViewModelStore().get<T>()!;
     }
 
-    final routeName = ModalRoute.of(this)?.settings.name ?? 'unknown';
+    final routeId = ModalRoute.of(this)?.hashCode ?? 0;
     if (!SharedViewModelStore._routeObserverAttached) {
       throw FlutterError(
         'SharedViewModelStore: ViewModelRouteObserver must be attached to navigatorObservers in MaterialApp or GoRouter to support auto-cleanup.',
       );
     }
     return SharedViewModelStore()
-        .put(viewModel: create(), routeName: routeName);
+        .put(viewModel: create(), routeId: routeId);
   }
 }
 

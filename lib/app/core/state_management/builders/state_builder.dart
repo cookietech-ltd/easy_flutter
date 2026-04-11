@@ -99,3 +99,38 @@ class _MultiStateBuilderState extends State<MultiStateBuilder> {
     return widget.builder(context, values, widget.child);
   }
 }
+
+/// A convenient builder specifically for [CommandState] that handles loading, error, and success states.
+class CommandBuilder<T> extends StatelessWidget {
+  final CommandState<T> state;
+  final Widget Function(BuildContext context)? onLoading;
+  final Widget Function(BuildContext context, Exception error)? onError;
+  final Widget Function(BuildContext context, T? value, Widget? child) builder;
+  final Widget? child;
+
+  const CommandBuilder({
+    super.key,
+    required this.state,
+    this.onLoading,
+    this.onError,
+    required this.builder,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StateBuilder<T?>(
+      state: state,
+      builder: (context, value, child) {
+        if (state.isLoading && onLoading != null) {
+          return onLoading!(context);
+        }
+        if (state.error != null && onError != null) {
+          return onError!(context, state.error!.error);
+        }
+        return builder(context, value, child);
+      },
+      child: child,
+    );
+  }
+}
