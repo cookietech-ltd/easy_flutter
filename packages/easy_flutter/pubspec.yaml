@@ -1,0 +1,12 @@
+name: easy_flutter
+description: A clean architecture state management core logic.
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.2.6 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  collection: ^1.18.0

@@ -1,4 +1,4 @@
-import 'package:easy_flutter_boilerplate/app/core/state_management/view_model.dart';
+import 'package:easy_flutter/easy_flutter.dart';
 import 'package:easy_flutter_boilerplate/app/presentation/modules/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:easy_flutter_boilerplate/app/utils/log.dart';
+import 'package:flutter/foundation.dart' hide AsyncCallback;
 import 'package:flutter/cupertino.dart';
-import '../result/result.dart';
+import 'result.dart';
 import 'package:collection/collection.dart';
 
 /// A base class that extends [ChangeNotifier] to provide state management.
@@ -141,7 +141,7 @@ class CommandState<T> extends DataState<T?> {
       _result = Result.ok(value);
       onSuccess?.call(value);
     } on Exception catch (e, stackTrace) {
-      Log.error('CommandState execution failed $e');
+      debugPrint('ERROR: CommandState execution failed $e');
       _result = Result.error(e, stackTrace);
       onError?.call(e);
     } finally {
@@ -543,11 +543,11 @@ class PagingCommandState<T> extends DataState<List<T>> {
 
       if (newItems.isEmpty) {
         _endOfList = true;
-        Log.print('PagingCommandState: No initial data found');
+        debugPrint('PagingCommandState: No initial data found');
       } else {
         _value = newItems;
         _currentPage = _config.initialPage + 1;
-        Log.print('PagingCommandState: Initial load: ${newItems.length} items');
+        debugPrint('PagingCommandState: Initial load: ${newItems.length} items');
       }
 
       _isInitialLoad = false;
@@ -555,7 +555,7 @@ class PagingCommandState<T> extends DataState<List<T>> {
       onSuccess?.call(newItems);
       return result;
     } on Exception catch (e, stackTrace) {
-      Log.error('PagingCommandState execute failed: $e');
+      debugPrint('ERROR: PagingCommandState execute failed: $e');
       _lastError = e;
       onError?.call(e);
       return Result.error(e, stackTrace);
@@ -586,7 +586,7 @@ class PagingCommandState<T> extends DataState<List<T>> {
       if (newItems.isEmpty) {
         // No more data available - mark end of list
         _endOfList = true;
-        Log.print(
+        debugPrint(
           'PagingCommandState: End of list reached at page $_currentPage',
         );
       } else {
@@ -595,7 +595,7 @@ class PagingCommandState<T> extends DataState<List<T>> {
         _value = updatedList;
         _currentPage++;
         onSuccess?.call(newItems);
-        Log.print(
+        debugPrint(
           'PagingCommandState: Loaded ${newItems.length} items, total: ${_value.length}',
         );
       }
@@ -603,7 +603,7 @@ class PagingCommandState<T> extends DataState<List<T>> {
       final result = Result.ok(newItems);
       return result;
     } on Exception catch (e, stackTrace) {
-      Log.error('PagingCommandState executeNext failed: $e');
+      debugPrint('ERROR: PagingCommandState executeNext failed: $e');
       _lastError = e;
       onError?.call(e);
       return Result.error(e, stackTrace);
@@ -640,11 +640,11 @@ class PagingCommandState<T> extends DataState<List<T>> {
 
       if (newItems.isEmpty) {
         _endOfList = true;
-        Log.print('PagingCommandState: No data found on refresh');
+        debugPrint('PagingCommandState: No data found on refresh');
       } else {
         _value = newItems;
         _currentPage = _config.initialPage + 1;
-        Log.print(
+        debugPrint(
           'PagingCommandState: Refresh loaded: ${newItems.length} items',
         );
       }
@@ -654,7 +654,7 @@ class PagingCommandState<T> extends DataState<List<T>> {
       onSuccess?.call(newItems);
       return result;
     } on Exception catch (e, stackTrace) {
-      Log.error('PagingCommandState refresh failed: $e');
+      debugPrint('ERROR: PagingCommandState refresh failed: $e');
       _lastError = e;
       onError?.call(e);
       return Result.error(e, stackTrace);
@@ -709,7 +709,7 @@ class StreamState<T> extends DataState<T> {
         _notifyListeners();
       },
       onError: (e) {
-        Log.error('StreamState error: $e');
+        debugPrint('ERROR: StreamState error: $e');
       },
     );
   }

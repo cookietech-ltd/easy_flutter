@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:easy_flutter_boilerplate/app/core/state_management/state/state.dart';
-import 'package:easy_flutter_boilerplate/app/utils/log.dart';
 import 'package:flutter/widgets.dart';
+
+import 'state.dart';
 
 // ✅ Base ViewModel class
 abstract class ViewModel {
@@ -97,12 +97,12 @@ abstract class ViewModel {
       state.dispose();
     }
     _ownedStates.clear();
-    Log.print('$runtimeType Disposed');
+    debugPrint('$runtimeType Disposed');
   }
 
   @mustCallSuper
   void onInit() {
-    Log.print('$runtimeType Initialized');
+    debugPrint('$runtimeType Initialized');
   }
 }
 

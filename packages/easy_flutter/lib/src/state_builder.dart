@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../state/state.dart';
+import 'state.dart';
 
 /// A builder that listens to a [DataState] and rebuilds the UI accordingly.
 /// Automatically removes listener and optionally disposes the state.
