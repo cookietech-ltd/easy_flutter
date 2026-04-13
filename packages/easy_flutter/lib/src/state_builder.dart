@@ -22,12 +22,15 @@ class StateBuilder<V> extends StatefulWidget {
 }
 
 class _StateBuilderState<V> extends State<StateBuilder<V>> {
+  VoidCallback? _listenerCallback;
+
   @override
   void initState() {
     super.initState();
     widget.state.addListener(_onStateChanged);
     if (widget.listener != null) {
-      widget.state.addListener(() => widget.listener?.call(widget.state.value));
+      _listenerCallback = () => widget.listener?.call(widget.state.value);
+      widget.state.addListener(_listenerCallback!);
     }
   }
 
@@ -38,6 +41,9 @@ class _StateBuilderState<V> extends State<StateBuilder<V>> {
   @override
   void dispose() {
     widget.state.removeListener(_onStateChanged);
+    if (_listenerCallback != null) {
+      widget.state.removeListener(_listenerCallback!);
+    }
     super.dispose();
   }
 
@@ -67,6 +73,7 @@ class MultiStateBuilder extends StatefulWidget {
 
 class _MultiStateBuilderState extends State<MultiStateBuilder> {
   final List<VoidCallback> _stateListeners = [];
+  final List<VoidCallback?> _externalListeners = [];
 
   @override
   void initState() {
@@ -78,10 +85,13 @@ class _MultiStateBuilderState extends State<MultiStateBuilder> {
       }
       state.addListener(onStateChanged);
       _stateListeners.add(onStateChanged);
-      // Attach listener if provided
+
+      VoidCallback? externalCb;
       if (widget.listeners != null && i < widget.listeners!.length && widget.listeners![i] != null) {
-        state.addListener(() => widget.listeners![i]?.call(state.value));
+        externalCb = () => widget.listeners![i]?.call(state.value);
+        state.addListener(externalCb);
       }
+      _externalListeners.add(externalCb);
     }
   }
 
@@ -89,6 +99,9 @@ class _MultiStateBuilderState extends State<MultiStateBuilder> {
   void dispose() {
     for (int i = 0; i < widget.states.length; i++) {
       widget.states[i].removeListener(_stateListeners[i]);
+      if (_externalListeners[i] != null) {
+        widget.states[i].removeListener(_externalListeners[i]!);
+      }
     }
     super.dispose();
   }

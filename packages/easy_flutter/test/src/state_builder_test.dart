@@ -27,6 +27,32 @@ void main() {
       expect(find.text('Value: 1'), findsOneWidget);
     });
 
+    testWidgets('StateBuilder cleans up listener callback on dispose', (WidgetTester tester) async {
+      final state = MutableState<int>(initialValue: 0);
+      int listenerCallCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StateBuilder<int>(
+            state: state,
+            listener: (val) => listenerCallCount++,
+            builder: (context, value, child) => Text('$value'),
+          ),
+        ),
+      );
+
+      state.value = 1;
+      await tester.pump();
+      expect(listenerCallCount, 1);
+
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      await tester.pump();
+
+      listenerCallCount = 0;
+      state.value = 2;
+      expect(listenerCallCount, 0, reason: 'Listener should be removed on dispose');
+    });
+
     testWidgets('MultiStateBuilder rebuilds on multiple state changes', (WidgetTester tester) async {
       final state1 = MutableState<int>(initialValue: 0);
       final state2 = MutableState<String>(initialValue: "A");
@@ -54,6 +80,42 @@ void main() {
       expect(find.text('1 : B'), findsOneWidget);
     });
 
+    testWidgets('MultiStateBuilder cleans up listeners on dispose', (WidgetTester tester) async {
+      final state1 = MutableState<int>(initialValue: 0);
+      final state2 = MutableState<int>(initialValue: 0);
+      int listener1Calls = 0;
+      int listener2Calls = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiStateBuilder(
+            states: [state1, state2],
+            listeners: [
+              (v) => listener1Calls++,
+              (v) => listener2Calls++,
+            ],
+            builder: (context, values, child) => Text('${values[0]},${values[1]}'),
+          ),
+        ),
+      );
+
+      state1.value = 1;
+      state2.value = 1;
+      await tester.pump();
+      expect(listener1Calls, 1);
+      expect(listener2Calls, 1);
+
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      await tester.pump();
+
+      listener1Calls = 0;
+      listener2Calls = 0;
+      state1.value = 2;
+      state2.value = 2;
+      expect(listener1Calls, 0, reason: 'Listener 1 should be removed on dispose');
+      expect(listener2Calls, 0, reason: 'Listener 2 should be removed on dispose');
+    });
+
     testWidgets('CommandBuilder displays outputs', (WidgetTester tester) async {
       final action = () async {
         await Future.delayed(const Duration(milliseconds: 10));
@@ -76,14 +138,11 @@ void main() {
 
       expect(find.text('Result: null'), findsOneWidget);
 
-      // Trigger execution
       state.execute();
-      await tester.pump(); // Trigger rebuilding for loading
-
+      await tester.pump();
       expect(find.text('Loading...'), findsOneWidget);
 
-      await tester.pumpAndSettle(const Duration(milliseconds: 20)); // wait for future
-
+      await tester.pumpAndSettle(const Duration(milliseconds: 20));
       expect(find.text('Result: 42'), findsOneWidget);
     });
 
@@ -100,7 +159,7 @@ void main() {
             state: state,
             onLoading: (context) => const Text('Loading...'),
             onError: (context, error) => Text('Err: $error'),
-            builder: (context, value, child) => Text('OK'),
+            builder: (context, value, child) => const Text('OK'),
           ),
         ),
       );
@@ -109,25 +168,22 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Err: Exception: Custom Error'), findsOneWidget);
     });
-    
+
     testWidgets('SharedViewModelScope provides access', (tester) async {
-      Widget? childWidget;
-      
       await tester.pumpWidget(
         MaterialApp(
           home: SharedViewModelScope<_DummyViewModel>(
             create: () => _DummyViewModel(),
             child: Builder(
               builder: (ctx) {
-                childWidget = Container();
                 final vm = SharedViewModelScope.of<_DummyViewModel>(ctx);
                 return Text('Shared: ${vm.isShared}');
-              }
-            )
-          )
-        )
+              },
+            ),
+          ),
+        ),
       );
-      
+
       expect(find.text('Shared: true'), findsOneWidget);
     });
   });

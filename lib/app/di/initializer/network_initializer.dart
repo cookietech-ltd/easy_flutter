@@ -1,4 +1,4 @@
-import 'package:easy_flutter_boilerplate/app/di/initializer/initializer.dart';
+import 'package:easy_flutter/easy_flutter.dart';
 
 class NetworkInitializer implements Initializer {
   @override

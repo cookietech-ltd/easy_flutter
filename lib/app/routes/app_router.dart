@@ -36,7 +36,7 @@ final GoRouter appRouter = GoRouter(
         return const HomeScreen();
       },
     ),
-    ScreenBuilder<HomeScreen>(
+    ScreenBuilder<ProfileScreen>(
       path: AppRoutes.profile.path,
       name: AppRoutes.profile.name,
       screenBuilder: (BuildContext context, GoRouterState state) {

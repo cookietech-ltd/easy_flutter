@@ -314,23 +314,51 @@ void main() {
       );
 
       expect(state.value, 0);
+      expect(state.hasError, isFalse);
+      expect(state.lastError, isNull);
       expect(state.asImmutable(), isA<DataState<int>>());
 
       controller.add(1);
-      // Wait for stream to deliver event
       await Future.delayed(Duration.zero);
-      
       expect(state.value, 1);
+      expect(state.hasError, isFalse);
 
       controller.addError(Exception('stream error'));
       await Future.delayed(Duration.zero);
-      // Does not crash because we catch error inside StreamState
+      expect(state.hasError, isTrue);
+      expect(state.lastError.toString(), contains('stream error'));
+      expect(state.value, 1, reason: 'Value should remain unchanged on error');
+
+      controller.add(5);
+      await Future.delayed(Duration.zero);
+      expect(state.value, 5);
+      expect(state.hasError, isFalse);
+      expect(state.lastError, isNull);
 
       state.dispose();
-      controller.add(2); // Should not be delivered to state
+      controller.add(2);
       await Future.delayed(Duration.zero);
-      expect(state.value, 1);
+      expect(state.value, 5);
       
+      await controller.close();
+    });
+
+    test('notifies listeners on stream error', () async {
+      final controller = StreamController<int>();
+      int notifyCount = 0;
+      final state = StreamState<int>(
+        stream: controller.stream,
+        initialValue: 0,
+      );
+      state.addListener(() => notifyCount++);
+
+      controller.addError(Exception('fail'));
+      await Future.delayed(Duration.zero);
+
+      expect(notifyCount, 1, reason: 'Listeners should be notified on error');
+      expect(state.hasError, isTrue);
+
+      state.dispose();
       await controller.close();
     });
   });

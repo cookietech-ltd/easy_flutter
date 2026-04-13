@@ -86,6 +86,26 @@ void main() {
       final state = CommandState<int>(action: null);
       expect(await state.execute(), isNull);
     });
+
+    test('initialValue is returned before any execution', () {
+      final state = CommandState<int>(initialValue: 99, action: () async => 1);
+      expect(state.value, 99);
+    });
+
+    test('initialValue is replaced after successful execution', () async {
+      final state = CommandState<int>(initialValue: 99, action: () async => 42);
+      await state.execute();
+      expect(state.value, 42);
+    });
+
+    test('initialValue is preserved after failed execution', () async {
+      final state = CommandState<int>(
+        initialValue: 99,
+        action: () async => throw Exception('fail'),
+      );
+      await state.execute(onError: (_) {});
+      expect(state.value, 99);
+    });
   });
 
   group('PagingCommandState tests', () {

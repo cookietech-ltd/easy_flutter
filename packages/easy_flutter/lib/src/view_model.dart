@@ -3,7 +3,6 @@ import 'package:flutter/widgets.dart';
 
 import 'state.dart';
 
-// ✅ Base ViewModel class
 abstract class ViewModel {
   ViewModel() {
     onInit();
@@ -18,36 +17,44 @@ abstract class ViewModel {
 
   MutableState<T> createMutableState<T>({
     required T initialValue,
+    VoidCallback? onValueChanged,
   }) {
     final state = MutableState(
       initialValue: initialValue,
+      onValueChanged: onValueChanged,
     );
-    return track(state); // Register for disposal
+    return track(state);
   }
 
   MutableListState<T> createMutableListState<T>({
     required List<T> initialValue,
+    VoidCallback? onValueChanged,
   }) {
     final state = MutableListState(
       initialValue: initialValue,
+      onValueChanged: onValueChanged,
     );
-    return track(state); // Register for disposal
+    return track(state);
   }
 
   MutableMapState<K, V> createMutableMapState<K, V>({
     required Map<K, V> initialValue,
+    VoidCallback? onValueChanged,
   }) {
     final state = MutableMapState(
       initialValue: initialValue,
+      onValueChanged: onValueChanged,
     );
-    return track(state); // Register for disposal
+    return track(state);
   }
 
   MutableSetState<T> createMutableSetState<T>({
     required Set<T> initialValue,
+    VoidCallback? onValueChanged,
   }) {
     final state = MutableSetState(
       initialValue: initialValue,
+      onValueChanged: onValueChanged,
     );
     return track(state);
   }
@@ -55,34 +62,40 @@ abstract class ViewModel {
   CommandState<T> createCommandState<T>({
     T? initialValue,
     AsyncCallback<T>? action,
+    VoidCallback? onValueChanged,
   }) {
     final state = CommandState(
       initialValue: initialValue,
       action: action,
+      onValueChanged: onValueChanged,
     );
-    return track(state); // Register for disposal
+    return track(state);
   }
 
   StreamState<T> createStreamState<T>({
     required Stream<T> stream,
     required T initialValue,
+    VoidCallback? onValueChanged,
   }) {
     final state = StreamState<T>(
       stream: stream,
       initialValue: initialValue,
+      onValueChanged: onValueChanged,
     );
-    return track(state); // Register for disposal
+    return track(state);
   }
 
   PagingCommandState<T> createPagingCommandState<T>({
     required PageLoader<T> pageLoader,
     PagingConfig config = const PagingConfig(),
+    VoidCallback? onValueChanged,
   }) {
     final state = PagingCommandState(
       pageLoader: pageLoader,
       config: config,
+      onValueChanged: onValueChanged,
     );
-    return track(state); // Register for disposal
+    return track(state);
   }
 
   bool _isShared = false;

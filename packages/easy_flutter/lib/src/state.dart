@@ -96,9 +96,10 @@ class CommandState<T> extends DataState<T?> {
   /// Returns true if the result contains a successful value.
   bool get isSuccess => _result is Ok<T>;
 
-  /// Returns the computed value if the execution was successful.
+  /// Returns the computed value if execution was successful,
+  /// or falls back to the initial value when no execution has occurred.
   @override
-  T? get value => _result is Ok<T> ? (_result as Ok<T>).value : null;
+  T? get value => _result is Ok<T> ? (_result as Ok<T>).value : _value;
 
   /// Constructor for initializing [CommandState].
   CommandState({
@@ -695,8 +696,17 @@ class PagingCommandState<T> extends DataState<List<T>> {
 }
 
 /// A state that automatically listens to and extracts data from a [Stream].
+///
+/// Stream errors are captured and accessible via [lastError] and [hasError].
 class StreamState<T> extends DataState<T> {
   StreamSubscription<T>? _subscription;
+  Exception? _lastError;
+
+  /// The last error received from the stream, if any.
+  Exception? get lastError => _lastError;
+
+  /// Whether the stream has encountered an error.
+  bool get hasError => _lastError != null;
 
   StreamState({
     required Stream<T> stream,
@@ -705,11 +715,14 @@ class StreamState<T> extends DataState<T> {
   }) {
     _subscription = stream.listen(
       (data) {
+        _lastError = null;
         _value = data;
         _notifyListeners();
       },
-      onError: (e) {
+      onError: (Object e) {
+        _lastError = e is Exception ? e : Exception(e.toString());
         debugPrint('ERROR: StreamState error: $e');
+        _notifyListeners();
       },
     );
   }

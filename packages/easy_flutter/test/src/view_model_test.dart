@@ -10,7 +10,7 @@ class TestViewModel extends ViewModel {
   late final CommandState<int> cmd;
   late final StreamState<int> streamCmd;
   late final PagingCommandState<int> paging;
-  
+
   final StreamController<int> sc = StreamController<int>();
 
   TestViewModel() : super() {
@@ -24,6 +24,18 @@ class TestViewModel extends ViewModel {
   }
 }
 
+class WithCallbackViewModel extends ViewModel {
+  int callbackCount = 0;
+  late final MutableState<int> counter;
+
+  WithCallbackViewModel() : super() {
+    counter = createMutableState(
+      initialValue: 0,
+      onValueChanged: () => callbackCount++,
+    );
+  }
+}
+
 void main() {
   group('ViewModel tests', () {
     test('create state methods correctly track states', () {
@@ -32,7 +44,7 @@ void main() {
       expect(vm.list.value, isEmpty);
       expect(vm.map.value, isEmpty);
       expect(vm.set.value, isEmpty);
-      expect(vm.cmd.value, isNull);
+      expect(vm.cmd.value, 0);
       expect(vm.streamCmd.value, 0);
       expect(vm.paging.value, isEmpty);
       expect(vm.isShared, isFalse);
@@ -41,7 +53,6 @@ void main() {
     test('dispose sweeps all tracked states', () {
       final vm = TestViewModel();
       vm.dispose();
-      // Internal states are disposed
       expect(() => vm.counter.value = 1, returnsNormally);
       vm.sc.close();
     });
@@ -50,6 +61,37 @@ void main() {
       final vm = TestViewModel();
       vm.markAsShared();
       expect(vm.isShared, isTrue);
+    });
+
+    test('ViewModel is a plain abstract class', () {
+      final vm = TestViewModel();
+      expect(vm, isA<ViewModel>());
+      vm.dispose();
+    });
+
+    test('onValueChanged callback fires on state change', () {
+      final vm = WithCallbackViewModel();
+      vm.counter.value = 42;
+      expect(vm.callbackCount, 1);
+      vm.counter.value = 99;
+      expect(vm.callbackCount, 2);
+      vm.dispose();
+    });
+
+    test('onValueChanged defaults to null (no side effect)', () {
+      final vm = TestViewModel();
+      int stateNotifyCount = 0;
+      vm.counter.addListener(() => stateNotifyCount++);
+
+      vm.counter.value = 42;
+      expect(stateNotifyCount, 1, reason: 'DataState own listener should fire');
+      vm.dispose();
+    });
+
+    test('CommandState initialValue is accessible before execution', () {
+      final vm = TestViewModel();
+      expect(vm.cmd.value, 0);
+      vm.dispose();
     });
   });
 
@@ -61,10 +103,10 @@ void main() {
     test('put and get', () {
       final vm = TestViewModel();
       SharedViewModelStore().put(viewModel: vm, routeId: 123);
-      
+
       expect(vm.isShared, isTrue);
       expect(SharedViewModelStore().contains<TestViewModel>(), isTrue);
-      
+
       final retrieved = SharedViewModelStore().get<TestViewModel>();
       expect(retrieved, same(vm));
     });
@@ -72,13 +114,13 @@ void main() {
     test('override works', () {
       final vm1 = TestViewModel();
       final vm2 = TestViewModel();
-      
+
       SharedViewModelStore().put(viewModel: vm1, routeId: 1);
       SharedViewModelStore().override(vm2);
-      
+
       final retrieved = SharedViewModelStore().get<TestViewModel>();
       expect(retrieved, same(vm2));
-      
+
       SharedViewModelStore().clearOverride<TestViewModel>();
       expect(SharedViewModelStore().get<TestViewModel>(), same(vm1));
     });
@@ -86,11 +128,11 @@ void main() {
     test('disposeByRouteId', () {
       final vm1 = TestViewModel();
       SharedViewModelStore().put(viewModel: vm1, routeId: 42);
-      
+
       SharedViewModelStore().disposeByRouteId(42);
       expect(SharedViewModelStore().contains<TestViewModel>(), isFalse);
     });
-    
+
     test('non-existent get returns null', () {
       expect(SharedViewModelStore().get<TestViewModel>(), isNull);
     });
