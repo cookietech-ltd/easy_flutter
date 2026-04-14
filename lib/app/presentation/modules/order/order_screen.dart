@@ -1,4 +1,4 @@
-import 'package:easy_flutter_boilerplate/app/core/base/screen_state.dart';
+import 'package:easy_flutter_boilerplate/app/presentation/base/screen_state.dart';
 import 'package:easy_flutter_boilerplate/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

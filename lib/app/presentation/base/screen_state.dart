@@ -5,57 +5,55 @@ import 'package:flutter/material.dart';
 abstract class ScreenState<T extends StatefulWidget> extends BaseState<T> {
   bool _isLoadingDialogVisible = false;
 
+  /// Displays an error [SnackBar] with the given [title] and optional
+  /// [message]. If [onRetry] is provided, a "Retry" action is added.
   void showError({
-    String routeName = 'errorBottomSheet',
     String? title,
     String? message,
-    String? description,
     VoidCallback? onRetry,
   }) {
-    // context.pushModalBottomSheet(
-    //   routeName: routeName,
-    //   isScrollControlled: true,
-    //   backgroundColor: Colors.transparent,
-    //   builder: (ctx) {
-    //     return ErrorBottomSheetLayout(
-    //       title: title ?? 'Something went wrong',
-    //       message: message ?? 'Please try again.',
-    //       onRetry: onRetry,
-    //     );
-    //   },
-    // );
+    final text = [
+      if (title != null) title,
+      if (message != null) message,
+    ].join('\n');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text.isNotEmpty ? text : 'Something went wrong'),
+        behavior: SnackBarBehavior.floating,
+        action: onRetry != null
+            ? SnackBarAction(label: 'Retry', onPressed: onRetry)
+            : null,
+      ),
+    );
   }
 
+  /// Handles an [error] by hiding any active loader and presenting an
+  /// appropriate error message. [BaseException] fields are used when
+  /// available; otherwise a generic message is shown.
   void onError(Exception error) {
     hideLoading();
     if (error is BaseException) {
-      // if (error is NetworkException) {
-      //   showError(
-      //     title: error.errorResponse?.message ?? error.message,
-      //     message: error.errorResponse?.description,
-      //   );
-      // }
+      showError(title: error.title, message: error.message);
     } else {
-      showError(title: 'something went wrong', message: error.toString());
+      showError(title: 'Something went wrong', message: error.toString());
     }
   }
 
-  /// Shows a centered, non-dismissible loading dialog with the provided
-  /// Lottie JSON asset path.
+  /// Shows a centered, non-dismissible loading dialog with a
+  /// [CircularProgressIndicator].
   ///
   /// If already visible, subsequent calls are ignored.
-  void showLoading({required String lottieAsset, String? routeName}) {
+  void showLoading() {
     if (_isLoadingDialogVisible) return;
     _isLoadingDialogVisible = true;
 
-    // Use root navigator to avoid being blocked by nested navigators/sheets
     context
         .pushDialog(
       routeName: 'loader',
       useRootNavigator: true,
-      builder: (ctx) {
-        return loaderWidget(lottieAsset);
-      },
+      barrierDismissible: false,
+      builder: (_) => _buildLoader(),
     )
         .whenComplete(() {
       _isLoadingDialogVisible = false;
@@ -65,7 +63,6 @@ abstract class ScreenState<T extends StatefulWidget> extends BaseState<T> {
   /// Hides the loading dialog if it is currently visible.
   void hideLoading() {
     if (!_isLoadingDialogVisible) return;
-    // Pop only if we can, using the root navigator where we presented
     final navigator = Navigator.of(context, rootNavigator: true);
     if (navigator.canPop()) {
       navigator.pop();
@@ -73,13 +70,13 @@ abstract class ScreenState<T extends StatefulWidget> extends BaseState<T> {
     _isLoadingDialogVisible = false;
   }
 
-  Widget loaderWidget(String lottieAsset) {
+  Widget _buildLoader() {
     return Center(
       child: Container(
-        width: 120,
-        height: 120,
+        width: 100,
+        height: 100,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
@@ -89,8 +86,8 @@ abstract class ScreenState<T extends StatefulWidget> extends BaseState<T> {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
-        // child: Lottie.asset(lottieAsset, repeat: true, fit: BoxFit.contain),
+        padding: const EdgeInsets.all(24),
+        child: const CircularProgressIndicator.adaptive(),
       ),
     );
   }
