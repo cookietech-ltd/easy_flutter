@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="easy_flutter_boilerplate"
+        android:label="Easy Flutter"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.cookietech.blz.easy.flutter.boilerplate.easy_flutter_boilerplate"
+    namespace "com.cookietech.blz.easy.flutter"
     compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.cookietech.blz.easy.flutter.boilerplate.easy_flutter_boilerplate"
+        applicationId "com.cookietech.blz.easy.flutter"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion flutter.minSdkVersion
