@@ -159,19 +159,24 @@ void main() {
       expect(state.currentPage, 1);
     });
 
-    test('paging handling errors', () async {
+    test('paging handling errors on execute and executeNext', () async {
+      int errorCount = 0;
       final state = PagingCommandState<int>(
         pageLoader: (p) async { throw Exception('fail'); },
       );
-      
-      final result1 = await state.execute(onError: (e) {});
+
+      final result1 = await state.execute(onError: (e) => errorCount++);
       expect(result1 is Error<List<int>>, isTrue);
       expect(state.lastError, isNotNull);
-      
-      // Fake initial load false to test error on next
-      state.reset();
-      await state.executeNext(onError: (e) {}); // this will return null because canLoadNextPage is true ONLY if not endoflist. Wait we need initial load false?
-      // No, executeNext doesn't check isInitialLoad, it checks canLoadNextPage! Which is true at start.
+      expect(errorCount, 1);
+
+      // executeNext also fails — canLoadNextPage is true (not loading, not endOfList)
+      final result2 = await state.executeNext(onError: (e) => errorCount++);
+      expect(result2 is Error<List<int>>, isTrue);
+      expect(errorCount, 2);
+
+      // After error, lastError is updated
+      expect(state.lastError.toString(), contains('fail'));
     });
 
     test('PagingParams toString', () {

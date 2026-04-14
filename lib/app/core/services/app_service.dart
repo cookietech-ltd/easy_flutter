@@ -14,32 +14,17 @@ class AppService {
   static BuildContext get context =>
       appRouter.routerDelegate.navigatorKey.currentContext!;
 
-  // static final GoRouterState? _currentState = appRouter.state;
-  //TODO: Implement Other Routing Helper Getter
-
   static String? get currentRouteName =>
       appRouter.routerDelegate.currentConfiguration.last.route.name;
 
   Future<void> start() async {
     await DiInitializer().init();
-
-    // Initialize Firebase service which will orchestrate all other firebase sub-services.
-    // await FirebaseService().initialize();
   }
 
-  /// Reset all dependencies
-  /// Useful for testing or logging out
+  /// Resets all registered dependencies and re-initializes the DI graph.
   Future<void> reset() async {
-    // if (getIt.isRegistered<SessionManager>()) {
-    //   final authProvider = getIt<SessionManager>();
-    //   await authProvider.clear(); // Clear credentials on reset
-    // }
-    
-    // Reset Firebase service and all its sub-services
-    // await FirebaseService().reset();
-    
     await getIt.reset();
-    await DiInitializer().init(); // Reinitialize DI if needed
+    await DiInitializer().init();
   }
 
   RouteMatchList get _matchList {

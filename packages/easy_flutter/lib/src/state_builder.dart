@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'state.dart';
 
 /// A builder that listens to a [DataState] and rebuilds the UI accordingly.
-/// Automatically removes listener and optionally disposes the state.
+/// Automatically adds and removes listeners on lifecycle boundaries.
 class StateBuilder<V> extends StatefulWidget {
   final DataState<V> state;
   final void Function(V value)? listener;
@@ -53,6 +53,9 @@ class _StateBuilderState<V> extends State<StateBuilder<V>> {
   }
 }
 
+/// A builder that listens to multiple [DataState] instances and rebuilds
+/// when any of them change. The [builder] receives the current values
+/// of all states as a list.
 class MultiStateBuilder extends StatefulWidget {
   final List<DataState<dynamic>> states;
   final List<void Function(dynamic value)?>? listeners;

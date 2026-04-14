@@ -165,6 +165,16 @@ void main() {
       expect(count, 4);
     });
 
+    test('remove does not notify when key is absent', () {
+      int count = 0;
+      final state = MutableMapState<String, int>(initialValue: {'a': 1});
+      state.addListener(() => count++);
+
+      final result = state.remove('z');
+      expect(result, isNull);
+      expect(count, 0);
+    });
+
     test('update notifies correctly', () {
       bool notified = false;
       final state = MutableMapState<String, int>(initialValue: {'a': 1});

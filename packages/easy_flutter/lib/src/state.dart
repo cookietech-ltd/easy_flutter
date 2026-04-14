@@ -16,7 +16,7 @@ abstract class DataState<T> extends ChangeNotifier {
 
   bool _isDisposed = false;
 
-  /// Constructor for initializing [BaseState].
+  /// Constructor for initializing [DataState].
   DataState({required T initialValue, VoidCallback? onValueChanged})
     : _onValueChanged = onValueChanged,
       _value = initialValue;
@@ -67,12 +67,16 @@ class MutableState<T> extends DataState<T> {
   }
 }
 
+/// Async function that returns a value of type [T].
 typedef AsyncCallback<T> = Future<T> Function();
 
+/// Async function that returns void.
 typedef VoidAsyncCallback = Future<void> Function();
 
+/// Callback invoked when an operation encounters an error.
 typedef ErrorCallback = void Function(Exception e);
 
+/// Callback invoked when loading state changes.
 typedef LoadingCallback = void Function(bool isLoading);
 
 /// A state class that manages an asynchronous command execution.
@@ -297,6 +301,7 @@ class MutableMapState<K, V> extends DataState<Map<K, V>> {
 
   /// Removes a key-value pair by key.
   V? remove(K key) {
+    if (!_value.containsKey(key)) return null;
     final removed = _value.remove(key);
     _notifyListeners();
     return removed;
@@ -455,9 +460,12 @@ class MutableSetState<T> extends DataState<Set<T>> {
   String toString() => _value.toString();
 }
 
-/// Parameters for pagination requests
+/// Parameters passed to a [PageLoader] for each page request.
 class PagingParams {
+  /// The 1-based page number to load.
   final int page;
+
+  /// The number of items per page.
   final int size;
 
   const PagingParams({required this.page, required this.size});
@@ -466,21 +474,24 @@ class PagingParams {
   String toString() => 'PagingParams(page: $page, size: $size)';
 }
 
-/// Callback that loads a page of data
+/// Callback that loads a page of items given [PagingParams].
 typedef PageLoader<T> = Future<List<T>> Function(PagingParams params);
 
-/// Configuration for pagination behavior
+/// Configuration for pagination behavior.
 class PagingConfig {
+  /// Number of items to request per page.
   final int pageSize;
+
+  /// The first page number (typically 0 or 1).
   final int initialPage;
+
+  /// Fraction of scroll extent at which to trigger the next page load.
   final double loadMoreThreshold;
-  final int debounceMilliseconds;
 
   const PagingConfig({
     this.pageSize = 20,
     this.initialPage = 1,
     this.loadMoreThreshold = 0.75,
-    this.debounceMilliseconds = 500,
   });
 }
 

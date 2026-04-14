@@ -3,6 +3,11 @@ import 'package:flutter/widgets.dart';
 
 import 'state.dart';
 
+/// Base class for ViewModels in the MVVM architecture.
+///
+/// Subclasses create states via factory methods ([createMutableState],
+/// [createCommandState], etc.) which are automatically tracked and disposed
+/// when [dispose] is called. Override [onInit] for post-construction setup.
 abstract class ViewModel {
   ViewModel() {
     onInit();
@@ -10,11 +15,13 @@ abstract class ViewModel {
 
   final List<DataState<dynamic>> _ownedStates = [];
 
+  /// Registers [state] for automatic disposal when this ViewModel is disposed.
   T track<T extends DataState<dynamic>>(T state) {
     _ownedStates.add(state);
     return state;
   }
 
+  /// Creates a [MutableState] tracked by this ViewModel.
   MutableState<T> createMutableState<T>({
     required T initialValue,
     VoidCallback? onValueChanged,
@@ -26,6 +33,7 @@ abstract class ViewModel {
     return track(state);
   }
 
+  /// Creates a [MutableListState] tracked by this ViewModel.
   MutableListState<T> createMutableListState<T>({
     required List<T> initialValue,
     VoidCallback? onValueChanged,
@@ -37,6 +45,7 @@ abstract class ViewModel {
     return track(state);
   }
 
+  /// Creates a [MutableMapState] tracked by this ViewModel.
   MutableMapState<K, V> createMutableMapState<K, V>({
     required Map<K, V> initialValue,
     VoidCallback? onValueChanged,
@@ -48,6 +57,7 @@ abstract class ViewModel {
     return track(state);
   }
 
+  /// Creates a [MutableSetState] tracked by this ViewModel.
   MutableSetState<T> createMutableSetState<T>({
     required Set<T> initialValue,
     VoidCallback? onValueChanged,
@@ -59,6 +69,7 @@ abstract class ViewModel {
     return track(state);
   }
 
+  /// Creates a [CommandState] tracked by this ViewModel.
   CommandState<T> createCommandState<T>({
     T? initialValue,
     AsyncCallback<T>? action,
@@ -72,6 +83,7 @@ abstract class ViewModel {
     return track(state);
   }
 
+  /// Creates a [StreamState] tracked by this ViewModel.
   StreamState<T> createStreamState<T>({
     required Stream<T> stream,
     required T initialValue,
@@ -85,6 +97,7 @@ abstract class ViewModel {
     return track(state);
   }
 
+  /// Creates a [PagingCommandState] tracked by this ViewModel.
   PagingCommandState<T> createPagingCommandState<T>({
     required PageLoader<T> pageLoader,
     PagingConfig config = const PagingConfig(),
@@ -100,10 +113,13 @@ abstract class ViewModel {
 
   bool _isShared = false;
 
+  /// Marks this ViewModel as shared, preventing automatic disposal by [BaseState].
   void markAsShared() => _isShared = true;
 
+  /// Whether this ViewModel is shared across routes via [SharedViewModelStore].
   bool get isShared => _isShared;
 
+  /// Disposes all tracked states and releases resources.
   @mustCallSuper
   void dispose() {
     for (final state in _ownedStates) {
@@ -113,13 +129,18 @@ abstract class ViewModel {
     debugPrint('$runtimeType Disposed');
   }
 
+  /// Called once during construction. Override to perform setup logic.
   @mustCallSuper
   void onInit() {
     debugPrint('$runtimeType Initialized');
   }
 }
 
-// ✅ Shared ViewModel Store with Route Cleanup
+/// Singleton store for sharing ViewModels across routes.
+///
+/// ViewModels are scoped to a route ID and automatically disposed when
+/// that route is popped, provided [ViewModelRouteObserver] is attached
+/// to the navigator.
 class SharedViewModelStore {
   static bool _routeObserverAttached = false;
 
@@ -194,7 +215,9 @@ class _ScopedViewModel {
   _ScopedViewModel(this.vm, this.routeId);
 }
 
-// ✅ Route Observer for flow-wide ViewModel cleanup
+/// Navigator observer that disposes route-scoped shared ViewModels on pop.
+///
+/// Attach to `navigatorObservers` in your `MaterialApp` or `GoRouter`.
 class ViewModelRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   bool _marked = false;
 
@@ -227,7 +250,10 @@ class ViewModelRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   }
 }
 
-// ✅ Child-scoped Shared ViewModel (InheritedWidget)
+/// Provides a ViewModel to the widget subtree via [InheritedWidget].
+///
+/// The ViewModel is created once and disposed when the scope is removed
+/// from the tree. Access it with [SharedViewModelScope.of] or [maybeOf].
 class SharedViewModelScope<T extends ViewModel> extends StatefulWidget {
   final Widget child;
   final T Function() create;
@@ -281,8 +307,12 @@ class _ViewModelInherited<T> extends InheritedWidget {
   bool updateShouldNotify(covariant _ViewModelInherited<T> oldWidget) => false;
 }
 
-// ✅ Public API to create or get shared ViewModel (flowWide by default)
+/// Extension for creating route-scoped shared ViewModels.
 extension ViewModelCreationExtension on BuildContext {
+  /// Creates a shared ViewModel of type [T] bound to the current route,
+  /// or returns the existing instance if one is already registered.
+  ///
+  /// Requires [ViewModelRouteObserver] to be attached for auto-cleanup.
   T createSharedViewModel<T extends ViewModel>(T Function() create) {
     if (SharedViewModelStore().contains<T>()) {
       return SharedViewModelStore().get<T>()!;
@@ -299,7 +329,12 @@ extension ViewModelCreationExtension on BuildContext {
   }
 }
 
+/// Extension for accessing shared ViewModels from the widget tree.
 extension ViewModelAccessExtension on BuildContext {
+  /// Retrieves a shared ViewModel of type [T] from child scope
+  /// ([SharedViewModelScope]) or global scope ([SharedViewModelStore]).
+  ///
+  /// Throws [FlutterError] if no ViewModel of type [T] is found.
   T getSharedViewModel<T extends ViewModel>() {
     assert(
       T != dynamic,
