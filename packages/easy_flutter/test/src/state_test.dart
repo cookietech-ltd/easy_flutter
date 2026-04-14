@@ -41,13 +41,8 @@ void main() {
     });
 
     test('dispose prevents notifyListeners', () {
-      bool notified = false;
       final state = MutableState<int>(initialValue: 0);
-      state.addListener(() => notified = true);
       state.dispose();
-      
-      // Attempting to mutate after dispose will throw errors normally in ChangeNotifier
-      // But we prevent internal calls via _isDisposed flag
       expect(() => state.value = 1, returnsNormally);
     });
 
@@ -319,25 +314,25 @@ void main() {
       expect(state.asImmutable(), isA<DataState<int>>());
 
       controller.add(1);
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(state.value, 1);
       expect(state.hasError, isFalse);
 
       controller.addError(Exception('stream error'));
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(state.hasError, isTrue);
       expect(state.lastError.toString(), contains('stream error'));
       expect(state.value, 1, reason: 'Value should remain unchanged on error');
 
       controller.add(5);
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(state.value, 5);
       expect(state.hasError, isFalse);
       expect(state.lastError, isNull);
 
       state.dispose();
       controller.add(2);
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(state.value, 5);
       
       await controller.close();
@@ -353,7 +348,7 @@ void main() {
       state.addListener(() => notifyCount++);
 
       controller.addError(Exception('fail'));
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       expect(notifyCount, 1, reason: 'Listeners should be notified on error');
       expect(state.hasError, isTrue);

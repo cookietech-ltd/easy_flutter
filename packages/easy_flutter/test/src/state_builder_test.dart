@@ -118,7 +118,7 @@ void main() {
 
     testWidgets('CommandBuilder displays outputs', (WidgetTester tester) async {
       final action = () async {
-        await Future.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
         return 42;
       };
       final state = CommandState<int>(action: action);
@@ -148,7 +148,7 @@ void main() {
 
     testWidgets('CommandBuilder displays error', (WidgetTester tester) async {
       final action = () async {
-        await Future.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
         throw Exception('Custom Error');
       };
       final state = CommandState<int>(action: action);

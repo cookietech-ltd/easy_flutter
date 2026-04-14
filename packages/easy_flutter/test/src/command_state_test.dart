@@ -68,17 +68,16 @@ void main() {
     test('executeExact prevents parallel executions', () async {
       final state = CommandState<int>(
         action: () async {
-          await Future.delayed(const Duration(milliseconds: 50));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
           return 1;
         },
       );
       
-      final future1 = state.executeExact(action: () async {
-        await Future.delayed(const Duration(milliseconds: 50));
+      unawaited(state.executeExact(action: () async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
         return 1;
-      });
-      final future2 = state.executeExact(action: () async => 2);
-      final r2 = await future2;
+      }));
+      final r2 = await state.executeExact(action: () async => 2);
       expect(r2, isNull);
     });
 

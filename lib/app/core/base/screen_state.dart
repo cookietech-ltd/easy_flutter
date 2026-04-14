@@ -1,5 +1,4 @@
-import 'package:easy_flutter_boilerplate/app/core/base/base_state.dart';
-import 'package:easy_flutter_boilerplate/app/core/exceptions/base_exception.dart';
+import 'package:easy_flutter/easy_flutter.dart';
 import 'package:easy_flutter_boilerplate/app/utils/route_ext.dart';
 import 'package:flutter/material.dart';
 
