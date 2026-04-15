@@ -185,29 +185,29 @@ class GetSettingsUseCase extends NoParamUseCase<Settings> {
 
 ## API Reference
 
-| Class | Description |
-|---|---|
-| `DataState<T>` | Base observable state extending `ChangeNotifier` |
-| `MutableState<T>` | Read/write state with change detection |
-| `MutableListState<T>` | Observable list with add/remove/batch ops |
-| `MutableMapState<K,V>` | Observable map with put/remove/batch ops |
-| `MutableSetState<T>` | Observable set with full Set API |
-| `CommandState<T>` | Async command with loading/success/error |
-| `PagingCommandState<T>` | Paginated list loading |
-| `StreamState<T>` | Stream-backed state with error tracking |
-| `StateBuilder<V>` | Widget builder for a single `DataState` |
-| `MultiStateBuilder` | Widget builder for multiple states |
-| `CommandBuilder<T>` | Convenience builder for `CommandState` |
-| `ViewModel` | Base class with state lifecycle management |
-| `SharedViewModelStore` | Singleton store for route-scoped ViewModels |
-| `ViewModelRouteObserver` | Navigator observer for auto-cleanup |
-| `SharedViewModelScope<T>` | InheritedWidget scope for child-tree VMs |
-| `BaseState<T>` | `State` mixin for ViewModel lifecycle in widgets |
-| `Result<T>` / `Ok<T>` / `Error<T>` | Sealed result type |
-| `UseCase<I,O>` | Use case contract with input |
-| `NoParamUseCase<O>` | Use case contract without input |
-| `BaseException` | Structured exception base class |
-| `Initializer` | DI initialization step contract |
+| Class                              | Description                                      |
+|------------------------------------|--------------------------------------------------|
+| `DataState<T>`                     | Base observable state extending `ChangeNotifier` |
+| `MutableState<T>`                  | Read/write state with change detection           |
+| `MutableListState<T>`              | Observable list with add/remove/batch ops        |
+| `MutableMapState<K,V>`             | Observable map with put/remove/batch ops         |
+| `MutableSetState<T>`               | Observable set with full Set API                 |
+| `CommandState<T>`                  | Async command with loading/success/error         |
+| `PagingCommandState<T>`            | Paginated list loading                           |
+| `StreamState<T>`                   | Stream-backed state with error tracking          |
+| `StateBuilder<V>`                  | Widget builder for a single `DataState`          |
+| `MultiStateBuilder`                | Widget builder for multiple states               |
+| `CommandBuilder<T>`                | Convenience builder for `CommandState`           |
+| `ViewModel`                        | Base class with state lifecycle management       |
+| `SharedViewModelStore`             | Singleton store for route-scoped ViewModels      |
+| `ViewModelRouteObserver`           | Navigator observer for auto-cleanup              |
+| `SharedViewModelScope<T>`          | InheritedWidget scope for child-tree VMs         |
+| `BaseState<T>`                     | `State` mixin for ViewModel lifecycle in widgets |
+| `Result<T>` / `Ok<T>` / `Error<T>` | Sealed result type                               |
+| `UseCase<I,O>`                     | Use case contract with input                     |
+| `NoParamUseCase<O>`                | Use case contract without input                  |
+| `BaseException`                    | Structured exception base class                  |
+| `Initializer`                      | DI initialization step contract                  |
 
 ## License
 
