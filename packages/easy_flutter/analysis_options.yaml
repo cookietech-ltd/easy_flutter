@@ -10,6 +10,9 @@ analyzer:
     implicit-casts: false
     implicit-dynamic: false
 
+  exclude:
+    - "**/*.md"
+
   errors:
     unused_import: error
     dead_code: error

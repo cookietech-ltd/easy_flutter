@@ -1,5 +1,3 @@
-library easy_flutter;
-
 // State management
 export 'src/state.dart';
 export 'src/view_model.dart';

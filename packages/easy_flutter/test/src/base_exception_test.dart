@@ -23,14 +23,14 @@ void main() {
     });
 
     test('can be caught as Exception', () {
-      Object? caught;
+      late Exception caught;
       try {
         throw const BaseException(title: 'Oops', message: 'Something broke');
       } on Exception catch (e) {
         caught = e;
       }
       expect(caught, isA<BaseException>());
-      expect((caught! as BaseException).title, 'Oops');
+      expect((caught as BaseException).title, 'Oops');
     });
   });
 }

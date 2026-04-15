@@ -73,10 +73,14 @@ void main() {
         },
       );
       
-      unawaited(state.executeExact(action: () async {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        return 1;
-      }));
+      unawaited(
+        state.executeExact(
+          action: () async {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+            return 1;
+          },
+        ),
+      );
       final r2 = await state.executeExact(action: () async => 2);
       expect(r2, isNull);
     });

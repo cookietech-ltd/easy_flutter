@@ -55,7 +55,7 @@ void main() {
 
     testWidgets('MultiStateBuilder rebuilds on multiple state changes', (WidgetTester tester) async {
       final state1 = MutableState<int>(initialValue: 0);
-      final state2 = MutableState<String>(initialValue: "A");
+      final state2 = MutableState<String>(initialValue: 'A');
 
       await tester.pumpWidget(
         MaterialApp(
@@ -75,7 +75,7 @@ void main() {
       await tester.pump();
       expect(find.text('1 : A'), findsOneWidget);
 
-      state2.value = "B";
+      state2.value = 'B';
       await tester.pump();
       expect(find.text('1 : B'), findsOneWidget);
     });
@@ -117,10 +117,10 @@ void main() {
     });
 
     testWidgets('CommandBuilder displays outputs', (WidgetTester tester) async {
-      final action = () async {
+      Future<int> action() async {
         await Future<void>.delayed(const Duration(milliseconds: 10));
         return 42;
-      };
+      }
       final state = CommandState<int>(action: action);
 
       await tester.pumpWidget(
@@ -147,10 +147,10 @@ void main() {
     });
 
     testWidgets('CommandBuilder displays error', (WidgetTester tester) async {
-      final action = () async {
+      Future<int> action() async {
         await Future<void>.delayed(const Duration(milliseconds: 10));
         throw Exception('Custom Error');
-      };
+      }
       final state = CommandState<int>(action: action);
 
       await tester.pumpWidget(
