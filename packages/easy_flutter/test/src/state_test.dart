@@ -367,4 +367,20 @@ void main() {
       await controller.close();
     });
   });
+
+  group('Collection state views', () {
+    test('value is a read-only view that tracks updates', () {
+      final list = MutableListState<int>(initialValue: [1]);
+      final map = MutableMapState<String, int>(initialValue: {'a': 1});
+      final set = MutableSetState<int>(initialValue: {1});
+      final listView = list.value;
+
+      expect(() => listView.add(2), throwsUnsupportedError);
+      expect(() => map.value['b'] = 2, throwsUnsupportedError);
+      expect(() => set.value.add(2), throwsUnsupportedError);
+
+      list.add(2);
+      expect(listView, [1, 2]);
+    });
+  });
 }
