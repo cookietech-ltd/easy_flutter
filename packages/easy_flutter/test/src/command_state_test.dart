@@ -18,10 +18,7 @@ void main() {
       expect(state.isLoading, isFalse);
       expect(state.value, isNull);
 
-      final future = state.execute(
-        onLoading: (isLoading) {},
-        onSuccess: (value) {},
-      );
+      final future = state.execute();
       
       completer.complete(42);
       
@@ -58,14 +55,14 @@ void main() {
         },
       );
 
-      final result = await state.execute(onError: (e) {});
+      final result = await state.execute();
       expect(result is Error<int>, isTrue);
       expect(state.error, isNotNull);
       expect(state.error!.error.toString().contains('fail'), isTrue);
       expect(state.isSuccess, isFalse);
     });
     
-    test('executeExact prevents parallel executions', () async {
+    test('executeWith prevents parallel executions', () async {
       final state = CommandState<int>(
         action: () async {
           await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -74,14 +71,12 @@ void main() {
       );
       
       unawaited(
-        state.executeExact(
-          action: () async {
-            await Future<void>.delayed(const Duration(milliseconds: 50));
-            return 1;
-          },
-        ),
+        state.executeWith(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          return 1;
+        }),
       );
-      final r2 = await state.executeExact(action: () async => 2);
+      final r2 = await state.executeWith(() async => 2);
       expect(r2, isNull);
     });
 
@@ -106,7 +101,7 @@ void main() {
         initialValue: 99,
         action: () async => throw Exception('fail'),
       );
-      await state.execute(onError: (_) {});
+      await state.execute();
       expect(state.value, 99);
     });
   });
@@ -124,10 +119,7 @@ void main() {
       );
 
       expect(state.isInitialLoad, isTrue);
-      await state.execute(
-        onLoading: (_) {},
-        onSuccess: (_) {},
-      );
+      await state.execute();
       
       expect(state.value.length, 5);
       expect(state.currentPage, 2);
@@ -137,7 +129,7 @@ void main() {
       await state.execute();
       expect(state.value.length, 5); 
 
-      await state.executeNext(onSuccess: (_) {});
+      await state.executeNext();
       expect(state.value.length, 10);
       expect(state.currentPage, 3);
       expect(state.endOfList, isFalse);
@@ -149,7 +141,7 @@ void main() {
       
       expect(await state.executeNext(), isNull);
 
-      await state.refresh(onSuccess: (_) {});
+      await state.refresh();
       expect(state.value.length, 5);
       expect(state.currentPage, 2);
       expect(state.endOfList, isFalse);
@@ -164,23 +156,51 @@ void main() {
     });
 
     test('paging handling errors on execute and executeNext', () async {
-      int errorCount = 0;
       final state = PagingCommandState<int>(
         pageLoader: (p) async { throw Exception('fail'); },
       );
 
-      final result1 = await state.execute(onError: (e) => errorCount++);
+      final result1 = await state.execute();
       expect(result1 is Error<List<int>>, isTrue);
       expect(state.lastError, isNotNull);
-      expect(errorCount, 1);
 
       // executeNext also fails — canLoadNextPage is true (not loading, not endOfList)
-      final result2 = await state.executeNext(onError: (e) => errorCount++);
+      final result2 = await state.executeNext();
       expect(result2 is Error<List<int>>, isTrue);
-      expect(errorCount, 2);
 
       // After error, lastError is updated
       expect(state.lastError.toString(), contains('fail'));
+    });
+
+    test('refresh discards a page still loading from before', () async {
+      final slowPage = Completer<List<int>>();
+      final state = PagingCommandState<int>(
+        pageLoader: (p) => p.page == 2 ? slowPage.future : Future.value([p.page]),
+        config: const PagingConfig(pageSize: 1),
+      );
+      await state.execute();
+      final next = state.executeNext();
+      expect(state.isLoading, isTrue);
+
+      await state.refresh();
+      slowPage.complete([99]);
+
+      expect(await next, isNull);
+      expect(state.value, [1]);
+      expect(state.currentPage, 2);
+      expect(state.isLoading, isFalse);
+    });
+
+    test('reset discards a page still loading', () async {
+      final slowPage = Completer<List<int>>();
+      final state = PagingCommandState<int>(pageLoader: (_) => slowPage.future);
+      final first = state.execute();
+      state.reset();
+      slowPage.complete([1]);
+
+      expect(await first, isNull);
+      expect(state.value, isEmpty);
+      expect(state.isInitialLoad, isTrue);
     });
 
     test('PagingParams toString', () {
