@@ -137,7 +137,7 @@ void main() {
       final r = await state.executeNext();
       expect(state.endOfList, isTrue);
       expect(state.canLoadNextPage, isFalse);
-      expect(r?.when(onSuccess: (v) => v.length, onError: (_,__) => -1), 0);
+      expect(r?.when(onSuccess: (v) => v.length, onError: (_, _) => -1), 0);
       
       expect(await state.executeNext(), isNull);
 

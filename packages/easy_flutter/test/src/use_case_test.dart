@@ -32,7 +32,7 @@ void main() {
       final result = await useCase(5);
       result.when(
         onSuccess: (value) => expect(value, 15),
-        onError: (_, __) => fail('Should not error'),
+        onError: (_, _) => fail('Should not error'),
       );
     });
 
@@ -50,7 +50,7 @@ void main() {
       final result = await useCase();
       result.when(
         onSuccess: (value) => expect(value, 1234567890),
-        onError: (_, __) => fail('Should not error'),
+        onError: (_, _) => fail('Should not error'),
       );
     });
   });
