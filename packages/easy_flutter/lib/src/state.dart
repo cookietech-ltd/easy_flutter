@@ -1,8 +1,18 @@
 import 'dart:async';
+import 'dart:collection'
+    show UnmodifiableListView, UnmodifiableMapView, UnmodifiableSetView;
+
 import 'package:flutter/foundation.dart' hide AsyncCallback;
-import 'package:flutter/cupertino.dart';
+
 import 'result.dart';
-import 'package:collection/collection.dart';
+
+/// Logs a caught error in debug builds only.
+void _logError(String source, Object error) {
+  assert(() {
+    debugPrint('ERROR: $source failed: $error');
+    return true;
+  }());
+}
 
 /// A base class that extends [ChangeNotifier] to provide state management.
 ///
@@ -62,22 +72,14 @@ class MutableState<T> extends DataState<T> {
     _notifyListeners();
   }
 
-  DataState<T> asImmutable() {
-    return this;
-  }
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI change it.
+  DataState<T> asImmutable() => this;
 }
 
 /// Async function that returns a value of type [T].
 typedef AsyncCallback<T> = Future<T> Function();
 
-/// Async function that returns void.
-typedef VoidAsyncCallback = Future<void> Function();
-
-/// Callback invoked when an operation encounters an error.
-typedef ErrorCallback = void Function(Exception e);
-
-/// Callback invoked when loading state changes.
-typedef LoadingCallback = void Function(bool isLoading);
 
 /// A state class that manages an asynchronous command execution.
 ///
@@ -112,66 +114,47 @@ class CommandState<T> extends DataState<T?> {
     super.onValueChanged,
   }) : _executeAction = action;
 
-  /// Executes the action only if it hasn't been executed before.
-  Future<Result<T>?> executeOnce({
-    ErrorCallback? onError,
-    LoadingCallback? onLoading,
-    void Function(T value)? onSuccess,
-  }) async {
-    return _result ??
-        await execute(
-          onError: onError,
-          onLoading: onLoading,
-          onSuccess: onSuccess,
-        );
+  /// Runs the stored action only if it has not run before.
+  ///
+  /// Returns the cached [Result] on later calls.
+  Future<Result<T>?> executeOnce() async => _result ?? await execute();
+
+  /// Runs the stored action passed to the constructor.
+  ///
+  /// Returns null without running when there is no stored action or a run
+  /// is already in progress.
+  Future<Result<T>?> execute() async {
+    final action = _executeAction;
+    if (action == null) return null;
+    return executeWith(action);
   }
 
-  /// Executes the command asynchronously, updating the state accordingly.
-  Future<Result<T>?> executeExact({
-    required AsyncCallback<T>? action,
-    ErrorCallback? onError,
-    LoadingCallback? onLoading,
-    void Function(T value)? onSuccess,
-  }) async {
+  /// Runs a one-off [action] instead of the stored one. Loading, error and
+  /// value are tracked in this state exactly like [execute].
+  ///
+  /// Returns null without running when a run is already in progress.
+  Future<Result<T>?> executeWith(AsyncCallback<T> action) async {
     if (_isLoading) return null;
-    if (action == null) return null;
 
     _isLoading = true;
-    onLoading?.call(_isLoading);
     _result = null;
     _notifyListeners();
 
     try {
-      final value = await action.call();
-      _result = Result.ok(value);
-      onSuccess?.call(value);
+      _result = Result.ok(await action());
     } on Exception catch (e, stackTrace) {
-      debugPrint('ERROR: CommandState execution failed $e');
+      _logError('CommandState', e);
       _result = Result.error(e, stackTrace);
-      onError?.call(e);
     } finally {
       _isLoading = false;
-      onLoading?.call(_isLoading);
       _notifyListeners();
     }
 
     return _result;
   }
 
-  /// Executes the command asynchronously, updating the state accordingly.
-  Future<Result<T>?> execute({
-    ErrorCallback? onError,
-    LoadingCallback? onLoading,
-    void Function(T value)? onSuccess,
-  }) async {
-    return executeExact(
-      action: _executeAction,
-      onError: onError,
-      onLoading: onLoading,
-      onSuccess: onSuccess,
-    );
-  }
-
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI run it.
   DataState<T?> asImmutable() => this;
 
   @override
@@ -180,18 +163,16 @@ class CommandState<T> extends DataState<T?> {
 
 /// A mutable list state that notifies listeners when the list changes.
 class MutableListState<T> extends DataState<List<T>> {
-  final _equality = IterableEquality<T>();
-
   MutableListState({List<T> initialValue = const [], super.onValueChanged})
     : super(initialValue: List<T>.from(initialValue));
 
   /// Provides read-only access to the current list
   @override
-  List<T> get value => List.unmodifiable(_value);
+  List<T> get value => UnmodifiableListView(_value);
 
   /// Replaces the entire list and notifies listeners if changed
   set value(List<T> newValue) {
-    if (!_equality.equals(_value, newValue)) {
+    if (!listEquals(_value, newValue)) {
       _value = List<T>.from(newValue);
       _notifyListeners();
     }
@@ -260,6 +241,8 @@ class MutableListState<T> extends DataState<List<T>> {
     }
   }
 
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI change it.
   DataState<List<T>> asImmutable() => this;
 
   @override
@@ -268,18 +251,16 @@ class MutableListState<T> extends DataState<List<T>> {
 
 /// A mutable map state that notifies listeners when the map changes.
 class MutableMapState<K, V> extends DataState<Map<K, V>> {
-  final _equality = MapEquality<K, V>();
-
   MutableMapState({Map<K, V> initialValue = const {}, super.onValueChanged})
     : super(initialValue: Map<K, V>.from(initialValue));
 
   /// Provides read-only access to the current map.
   @override
-  Map<K, V> get value => Map.unmodifiable(_value);
+  Map<K, V> get value => UnmodifiableMapView(_value);
 
   /// Replaces the entire map and notifies listeners if changed.
   set value(Map<K, V> newValue) {
-    if (!_equality.equals(_value, newValue)) {
+    if (!mapEquals(_value, newValue)) {
       _value = Map<K, V>.from(newValue);
       _notifyListeners();
     }
@@ -335,6 +316,8 @@ class MutableMapState<K, V> extends DataState<Map<K, V>> {
     _notifyListeners();
   }
 
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI change it.
   DataState<Map<K, V>> asImmutable() => this;
 
   @override
@@ -343,18 +326,16 @@ class MutableMapState<K, V> extends DataState<Map<K, V>> {
 
 /// A mutable set state that notifies listeners when the set changes.
 class MutableSetState<T> extends DataState<Set<T>> {
-  final _equality = SetEquality<T>();
-
   MutableSetState({Set<T>? initialValue, super.onValueChanged})
     : super(initialValue: Set<T>.from(initialValue ?? {}));
 
   /// Provides read-only access to the current set.
   @override
-  Set<T> get value => Set.unmodifiable(_value);
+  Set<T> get value => UnmodifiableSetView(_value);
 
   /// Replaces the entire set and notifies listeners if changed.
   set value(Set<T> newValue) {
-    if (!_equality.equals(_value, newValue)) {
+    if (!setEquals(_value, newValue)) {
       _value = Set<T>.from(newValue);
       _notifyListeners();
     }
@@ -454,6 +435,8 @@ class MutableSetState<T> extends DataState<Set<T>> {
   /// Creates a [Set] with the same elements and behavior as this set.
   Set<T> toSet() => Set<T>.from(_value);
 
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI change it.
   DataState<Set<T>> asImmutable() => this;
 
   @override
@@ -507,17 +490,25 @@ class PagingCommandState<T> extends DataState<List<T>> {
   bool _isInitialLoad = true;
   Exception? _lastError;
 
-  // Getters for pagination state
+  /// Bumped by [refresh] and [reset] so results of older loads are dropped.
+  int _generation = 0;
+
+  /// Whether a page is currently loading.
   bool get isLoading => _isLoading;
 
+  /// Whether the last load returned no items, so there are no more pages.
   bool get endOfList => _endOfList;
 
+  /// Whether the first page has not loaded yet.
   bool get isInitialLoad => _isInitialLoad;
 
+  /// Whether [executeNext] would load a page right now.
   bool get canLoadNextPage => !_isLoading && !_endOfList;
 
+  /// The page number the next [executeNext] call will request.
   int get currentPage => _currentPage;
 
+  /// The error from the last failed load, cleared when a new load starts.
   Exception? get lastError => _lastError;
 
   PagingCommandState({
@@ -529,151 +520,59 @@ class PagingCommandState<T> extends DataState<List<T>> {
        _currentPage = config.initialPage,
        super(initialValue: <T>[]);
 
-  /// Execute initial load (only if not already loaded)
-  Future<Result<List<T>>?> execute({
-    ErrorCallback? onError,
-    LoadingCallback? onLoading,
-    void Function(List<T> items)? onSuccess,
-  }) async {
-    if (!_isInitialLoad) {
-      // Already loaded, return existing data
-      onSuccess?.call(_value);
-      return Result.ok(_value);
-    }
-
-    _isLoading = true;
-    _lastError = null;
-    onLoading?.call(_isLoading);
-    _notifyListeners();
-
-    try {
-      final params = PagingParams(
-        page: _config.initialPage,
-        size: _config.pageSize,
-      );
-      final newItems = await _pageLoader(params);
-
-      if (newItems.isEmpty) {
-        _endOfList = true;
-        debugPrint('PagingCommandState: No initial data found');
-      } else {
-        _value = newItems;
-        _currentPage = _config.initialPage + 1;
-        debugPrint('PagingCommandState: Initial load: ${newItems.length} items');
-      }
-
-      _isInitialLoad = false;
-      final result = Result.ok(newItems);
-      onSuccess?.call(newItems);
-      return result;
-    } on Exception catch (e, stackTrace) {
-      debugPrint('ERROR: PagingCommandState execute failed: $e');
-      _lastError = e;
-      onError?.call(e);
-      return Result.error(e, stackTrace);
-    } finally {
-      _isLoading = false;
-      onLoading?.call(_isLoading);
-      _notifyListeners();
-    }
+  /// Loads the first page. Returns the loaded items as an [Ok] without
+  /// loading again once the first page is in.
+  Future<Result<List<T>>?> execute() async {
+    if (!_isInitialLoad) return Result.ok(_value);
+    if (_isLoading) return null;
+    return _load(_config.initialPage, append: false);
   }
 
-  /// Load the next page of data
-  Future<Result<List<T>>?> executeNext({
-    ErrorCallback? onError,
-    LoadingCallback? onLoading,
-    void Function(List<T> newItems)? onSuccess,
-  }) async {
+  /// Loads the next page and appends it. Returns null when a load is in
+  /// progress or the end of the list was reached.
+  Future<Result<List<T>>?> executeNext() async {
     if (!canLoadNextPage) return null;
-
-    _isLoading = true;
-    _lastError = null;
-    onLoading?.call(_isLoading);
-    _notifyListeners();
-
-    try {
-      final params = PagingParams(page: _currentPage, size: _config.pageSize);
-      final newItems = await _pageLoader(params);
-
-      if (newItems.isEmpty) {
-        // No more data available - mark end of list
-        _endOfList = true;
-        debugPrint(
-          'PagingCommandState: End of list reached at page $_currentPage',
-        );
-      } else {
-        // Append new items to existing list
-        final updatedList = List<T>.from(_value)..addAll(newItems);
-        _value = updatedList;
-        _currentPage++;
-        onSuccess?.call(newItems);
-        debugPrint(
-          'PagingCommandState: Loaded ${newItems.length} items, total: ${_value.length}',
-        );
-      }
-
-      final result = Result.ok(newItems);
-      return result;
-    } on Exception catch (e, stackTrace) {
-      debugPrint('ERROR: PagingCommandState executeNext failed: $e');
-      _lastError = e;
-      onError?.call(e);
-      return Result.error(e, stackTrace);
-    } finally {
-      _isLoading = false;
-      onLoading?.call(_isLoading);
-      _notifyListeners();
-    }
+    return _load(_currentPage, append: true);
   }
 
-  /// Refresh by clearing all data and loading the first page
-  Future<Result<List<T>>?> refresh({
-    ErrorCallback? onError,
-    LoadingCallback? onLoading,
-    void Function(List<T> items)? onSuccess,
-  }) async {
+  /// Clears all items and loads the first page again. A load still in
+  /// flight is discarded.
+  Future<Result<List<T>>?> refresh() {
+    _clear();
+    return _load(_config.initialPage, append: false);
+  }
+
+  /// Returns null when [refresh] or [reset] ran while this load was in flight.
+  Future<Result<List<T>>?> _load(int page, {required bool append}) async {
+    final generation = _generation;
     _isLoading = true;
     _lastError = null;
-    onLoading?.call(_isLoading);
     _notifyListeners();
 
     try {
-      // Reset to initial state
-      _currentPage = _config.initialPage;
-      _endOfList = false;
-      _isInitialLoad = true;
-      _value = <T>[];
-
-      final params = PagingParams(
-        page: _config.initialPage,
-        size: _config.pageSize,
+      final items = await _pageLoader(
+        PagingParams(page: page, size: _config.pageSize),
       );
-      final newItems = await _pageLoader(params);
+      if (generation != _generation) return null;
 
-      if (newItems.isEmpty) {
+      if (items.isEmpty) {
         _endOfList = true;
-        debugPrint('PagingCommandState: No data found on refresh');
       } else {
-        _value = newItems;
-        _currentPage = _config.initialPage + 1;
-        debugPrint(
-          'PagingCommandState: Refresh loaded: ${newItems.length} items',
-        );
+        _value = append ? [..._value, ...items] : items;
+        _currentPage = page + 1;
       }
-
       _isInitialLoad = false;
-      final result = Result.ok(newItems);
-      onSuccess?.call(newItems);
-      return result;
+      return Result.ok(items);
     } on Exception catch (e, stackTrace) {
-      debugPrint('ERROR: PagingCommandState refresh failed: $e');
+      if (generation != _generation) return null;
+      _logError('PagingCommandState', e);
       _lastError = e;
-      onError?.call(e);
       return Result.error(e, stackTrace);
     } finally {
-      _isLoading = false;
-      onLoading?.call(_isLoading);
-      _notifyListeners();
+      if (generation == _generation) {
+        _isLoading = false;
+        _notifyListeners();
+      }
     }
   }
 
@@ -688,17 +587,25 @@ class PagingCommandState<T> extends DataState<List<T>> {
     return scrollPosition >= threshold;
   }
 
-  /// Reset to initial state
+  /// Clears all items and goes back to the first page without loading.
+  /// A load still in flight is discarded.
   void reset() {
+    _clear();
+    _notifyListeners();
+  }
+
+  void _clear() {
+    _generation++;
     _currentPage = _config.initialPage;
     _isLoading = false;
     _endOfList = false;
     _isInitialLoad = true;
     _lastError = null;
     _value = <T>[];
-    _notifyListeners();
   }
 
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI change it.
   DataState<List<T>> asImmutable() => this;
 
   @override
@@ -732,7 +639,7 @@ class StreamState<T> extends DataState<T> {
       },
       onError: (Object e) {
         _lastError = e is Exception ? e : Exception(e.toString());
-        debugPrint('ERROR: StreamState error: $e');
+        _logError('StreamState', e);
         _notifyListeners();
       },
     );
@@ -744,6 +651,8 @@ class StreamState<T> extends DataState<T> {
     super.dispose();
   }
 
+  /// Returns this state typed as read-only [DataState], for exposing from a
+  /// ViewModel without letting the UI change it.
   DataState<T> asImmutable() => this;
 }
 

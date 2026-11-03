@@ -1,6 +1,18 @@
-# Easy Flutter Boilerplate
+# Easy Flutter
 
-A production-ready Flutter boilerplate implementing **MVVM with Clean Architecture**, powered by a lightweight, zero-dependency state management core (`easy_flutter` package). No Bloc, no Riverpod, no Provider -- just Flutter's own `ChangeNotifier` wrapped in a clean, opinionated API.
+The Flutter team's recommended **MVVM + Command** architecture, ready to use: route-scoped ViewModels, built-in loading / error / paging states, zero state-management dependencies.
+
+- **Plain ViewModels** -- a Dart class that holds states and exposes methods. No events, no reducers, no codegen.
+- **`CommandState`** -- async work with loading / error / success handled for you, plus `PagingCommandState` and `StreamState`.
+- **Automatic lifecycle** -- `factoryViewModel(MyViewModel.new)` disposes with the route.
+- **Built on `ChangeNotifier`** -- nothing to learn that Flutter doesn't already ship.
+
+The repo contains two things:
+
+| Part | Where | What |
+|------|-------|------|
+| `easy_flutter` package | [`packages/easy_flutter`](packages/easy_flutter) | The state-management core. Use it on its own. |
+| Boilerplate app | `lib/` | Reference app: MVVM + Clean Architecture with GetIt and GoRouter, built on the package. |
 
 Built following the [official Flutter architecture guidelines](https://docs.flutter.dev/app-architecture).
 
@@ -11,7 +23,7 @@ MVVM with Clean Architecture is the [recommended approach](https://docs.flutter.
 | Package | Challenge with MVVM + Clean Architecture |
 |---------|------------------------------------------|
 | **Bloc** | Replaces the ViewModel concept with Event/State/Bloc triad -- adds ceremony for simple screens and makes holding multiple independent states awkward. |
-| **Riverpod** | No native "ViewModel that lives and dies with a screen." Scoping to routes requires manual `autoDispose` config, and the mental model shifts away from UI-owns-ViewModel. |
+| **Riverpod** | Auto-dispose is the default with code generation, but providers are global and declared outside the widget tree, so the mental model shifts away from "the screen owns its ViewModel." |
 | **Provider** | No built-in async command pattern -- you manually manage `isLoading`/`error`/`data` in every ChangeNotifier and end up building your own ViewModel base class. |
 
 These are all excellent packages in their own right. Easy Flutter simply takes a different path -- instead of replacing MVVM, it **embraces it directly**:
@@ -41,29 +53,16 @@ These are all excellent packages in their own right. Easy Flutter simply takes a
 
 **Data flows down, events flow up.** The UI never touches the data layer directly.
 
-## Branching Strategy
+## Examples
 
-This boilerplate is designed for a **fork-and-merge** workflow. After forking, merge feature branches to get pre-built setups:
-
-| Branch | What You Get |
-|--------|-------------|
-| `main` | Core boilerplate (MVVM + Clean Architecture + state management) |
-| `network-dio` | Dio HTTP client setup with interceptors, retry, and token refresh *(coming soon)* |
-| `supabase` | Supabase auth + database + realtime integration *(coming soon)* |
-| `firebase` | Firebase Auth + Firestore + FCM setup *(coming soon)* |
-| `local-storage` | Hive / SharedPreferences with repository pattern *(coming soon)* |
-
-```bash
-# Fork the repo, then merge what you need:
-git merge origin/network-dio
-git merge origin/firebase
-```
+Complete apps built on this boilerplate live on the `example/bottom-navigaton` and `example/photo-gallery` branches.
 
 ---
 
 ## Table of Contents
 
 - [Motivation](#motivation)
+- [Examples](#examples)
 - [Getting Started](#getting-started)
 - [Folder Structure](#folder-structure)
 - [Easy Flutter Package](#easy-flutter-package)
@@ -244,7 +243,15 @@ class _ProductScreenState extends ScreenState<ProductScreen> {
   @override
   void initState() {
     super.initState();
-    vm.loadProducts(onError: onError); // onError is from ScreenState
+    _loadProducts();
+  }
+
+  // One-shot effects (snackbar, navigation) stay in the UI.
+  // onError is from ScreenState.
+  Future<void> _loadProducts() async {
+    if (await vm.loadProducts() case Error(:final error) when mounted) {
+      onError(error);
+    }
   }
 
   @override
@@ -284,20 +291,18 @@ class ProductViewModel extends ViewModel {
   void onInit() {
     super.onInit();
     _useCase = inject<GetProductsUseCase>(); // get_it injection
-    products = createCommandState<List<ProductEntity>>();
+    products = createCommandState<List<ProductEntity>>(action: _fetchProducts);
   }
 
-  Future<void> loadProducts({ErrorCallback? onError}) async {
-    await products.executeExact(
-      action: () async {
-        final result = await _useCase.call();
-        return switch (result) {
-          Ok(value: final v) => v,
-          Error(error: final e) => throw e,
-        };
-      },
-      onError: onError,
-    );
+  // Returns the Result so the screen can react to it. No UI callbacks here.
+  Future<Result<List<ProductEntity>>?> loadProducts() => products.execute();
+
+  Future<List<ProductEntity>> _fetchProducts() async {
+    final result = await _useCase.call();
+    return switch (result) {
+      Ok(value: final v) => v,
+      Error(error: final e) => throw e,
+    };
   }
 }
 ```
@@ -306,6 +311,7 @@ class ProductViewModel extends ViewModel {
 - Override `onInit()` (always call `super.onInit()`) for setup logic that runs after construction.
 - Use `createCommandState`, `createMutableState`, etc. -- they are auto-tracked for disposal.
 - The ViewModel pattern-matches on `Result` to unwrap values or rethrow errors.
+- ViewModel methods never take UI callbacks. They return the `Result`, and the screen decides what to show.
 
 ### 3. Using States in a ViewModel
 
@@ -371,12 +377,11 @@ late final fetchUser = createCommandState<User>(
   action: () => apiService.getUser(),
 );
 
-// Execute the action:
-await fetchUser.execute(
-  onSuccess: (user) => print('Loaded: ${user.name}'),
-  onError: (e) => print('Failed: $e'),
-  onLoading: (loading) => print('Loading: $loading'),
-);
+// Run the stored action. Returns Result<User>, or null if already running:
+final result = await fetchUser.execute();
+
+// Run a one-off action instead of the stored one, tracked in the same state:
+await fetchUser.executeWith(() => apiService.getUser(refresh: true));
 
 // Check state:
 fetchUser.isLoading;  // true while executing
@@ -404,10 +409,9 @@ StateBuilder<int>(
 // Multiple states -- rebuilds when ANY of them change
 MultiStateBuilder(
   states: [vm.counter, vm.username],
-  builder: (context, values, child) {
-    final count = values[0] as int;
-    final name = values[1] as String;
-    return Text('$name tapped $count times');
+  builder: (context, _, child) {
+    // Read typed values from the states, no casts needed.
+    return Text('${vm.username.value} tapped ${vm.counter.value} times');
   },
 )
 ```
@@ -716,20 +720,18 @@ class HomeViewModel extends ViewModel {
   void onInit() {
     super.onInit();
     _getProductsUseCase = inject<GetProductsUseCase>();
-    products = createCommandState<List<ProductEntity>>();
+    products = createCommandState<List<ProductEntity>>(action: _fetchProducts);
   }
 
-  Future<void> loadProducts({ErrorCallback? onError}) async {
-    await products.executeExact(
-      action: () async {
-        final result = await _getProductsUseCase.call();
-        return switch (result) {
-          Ok(value: final v) => v,
-          Error(error: final e) => throw e,
-        };
-      },
-      onError: onError,
-    );
+  // Returns the Result so the screen can react to it. No UI callbacks here.
+  Future<Result<List<ProductEntity>>?> loadProducts() => products.execute();
+
+  Future<List<ProductEntity>> _fetchProducts() async {
+    final result = await _getProductsUseCase.call();
+    return switch (result) {
+      Ok(value: final v) => v,
+      Error(error: final e) => throw e,
+    };
   }
 }
 ```
@@ -742,7 +744,13 @@ class _HomeScreenState extends ScreenState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    vm.loadProducts(onError: onError);
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    if (await vm.loadProducts() case Error(:final error) when mounted) {
+      onError(error);
+    }
   }
 
   @override
@@ -782,7 +790,7 @@ class _HomeScreenState extends ScreenState<HomeScreen> {
 | `MutableListState<T>` | Observable list with `add`, `remove`, `replaceAt`, `batchUpdate` |
 | `MutableMapState<K,V>` | Observable map with `put`, `remove`, `update`, `batchUpdate` |
 | `MutableSetState<T>` | Observable set with `add`, `remove`, `removeWhere`, `retainWhere` |
-| `CommandState<T>` | Async operation -- `execute()`, `executeOnce()`, `executeExact()` |
+| `CommandState<T>` | Async operation -- `execute()`, `executeOnce()`, `executeWith(action)` |
 | `PagingCommandState<T>` | Paginated loading -- `execute()`, `executeNext()`, `refresh()` |
 | `StreamState<T>` | Stream-backed reactive state with `lastError`, `hasError` |
 | **ViewModel** | |

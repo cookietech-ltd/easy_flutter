@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:easy_flutter/easy_flutter.dart';
 
@@ -35,6 +36,18 @@ class WithCallbackViewModel extends ViewModel {
     );
   }
 }
+
+class _DisposeTrackingViewModel extends ViewModel {
+  bool disposed = false;
+
+  @override
+  void dispose() {
+    disposed = true;
+    super.dispose();
+  }
+}
+
+class _OtherDisposeTrackingViewModel extends _DisposeTrackingViewModel {}
 
 void main() {
   group('ViewModel tests', () {
@@ -135,6 +148,34 @@ void main() {
 
     test('non-existent get returns null', () {
       expect(SharedViewModelStore().get<TestViewModel>(), isNull);
+    });
+  });
+
+  group('ViewModelRouteObserver tests', () {
+    tearDown(() => SharedViewModelStore().clearAll());
+
+    MaterialPageRoute<void> route() =>
+        MaterialPageRoute<void>(builder: (_) => const SizedBox());
+
+    test('disposes shared ViewModels of removed and replaced routes', () {
+      final observer = ViewModelRouteObserver();
+      final removed = route();
+      final replaced = route();
+      final vm1 = SharedViewModelStore().put(
+        viewModel: _DisposeTrackingViewModel(),
+        routeId: removed.hashCode,
+      );
+      final vm2 = SharedViewModelStore().put(
+        viewModel: _OtherDisposeTrackingViewModel(),
+        routeId: replaced.hashCode,
+      );
+
+      observer.didRemove(removed, null);
+      expect(vm1.disposed, isTrue);
+      expect(vm2.disposed, isFalse);
+
+      observer.didReplace(newRoute: route(), oldRoute: replaced);
+      expect(vm2.disposed, isTrue);
     });
   });
 }

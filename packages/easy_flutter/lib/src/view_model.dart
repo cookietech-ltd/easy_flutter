@@ -126,14 +126,11 @@ abstract class ViewModel {
       state.dispose();
     }
     _ownedStates.clear();
-    debugPrint('$runtimeType Disposed');
   }
 
   /// Called once during construction. Override to perform setup logic.
   @mustCallSuper
-  void onInit() {
-    debugPrint('$runtimeType Initialized');
-  }
+  void onInit() {}
 }
 
 /// Singleton store for sharing ViewModels across routes.
@@ -144,6 +141,7 @@ abstract class ViewModel {
 class SharedViewModelStore {
   static bool _routeObserverAttached = false;
 
+  /// Called by [ViewModelRouteObserver] once it sees its first route.
   static void markRouteObserverAttached() {
     _routeObserverAttached = true;
   }
@@ -159,6 +157,8 @@ class SharedViewModelStore {
   final Map<int, Set<Type>> _routeToTypesMap = {};
   final Map<Type, ViewModel> _overrides = {};
 
+  /// Registers [viewModel] as the shared instance of [T], owned by the route
+  /// with [routeId]. It is disposed when that route leaves the navigator.
   T put<T extends ViewModel>({
     required T viewModel,
     required int routeId,
@@ -169,6 +169,8 @@ class SharedViewModelStore {
     return viewModel;
   }
 
+  /// Returns the override for [T] if one is set, else the shared instance,
+  /// else null.
   T? get<T extends ViewModel>() {
     final override = _overrides[T];
     if (override is T) return override;
@@ -179,14 +181,18 @@ class SharedViewModelStore {
     return null;
   }
 
+  /// Whether a shared instance of [T] is registered.
   bool contains<T extends ViewModel>() => _store.containsKey(T);
 
+  /// Makes [get] return [instance] for [T]. Use in tests to inject fakes.
   void override<T extends ViewModel>(T instance) {
     _overrides[T] = instance;
   }
 
+  /// Removes the override set with [override].
   void clearOverride<T extends ViewModel>() => _overrides.remove(T);
 
+  /// Disposes every shared ViewModel owned by the route with [routeId].
   void disposeByRouteId(int routeId) {
     final types = _routeToTypesMap[routeId];
     if (types != null) {
@@ -198,6 +204,7 @@ class SharedViewModelStore {
     }
   }
 
+  /// Disposes every shared ViewModel and removes all overrides.
   void clearAll() {
     for (var e in _store.values) {
       e.vm.dispose();
@@ -215,7 +222,8 @@ class _ScopedViewModel {
   _ScopedViewModel(this.vm, this.routeId);
 }
 
-/// Navigator observer that disposes route-scoped shared ViewModels on pop.
+/// Navigator observer that disposes route-scoped shared ViewModels when their
+/// route leaves the navigator (pop, remove or replace).
 ///
 /// Attach to `navigatorObservers` in your `MaterialApp` or `GoRouter`.
 class ViewModelRouteObserver extends RouteObserver<PageRoute<dynamic>> {
@@ -238,15 +246,21 @@ class ViewModelRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     _ensureMarked();
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (oldRoute != null) SharedViewModelStore().disposeByRouteId(oldRoute.hashCode);
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     _ensureMarked();
-    final name = route.settings.name;
-    final id = route.hashCode;
-    debugPrint('Popping Route ID: $id (name: $name)');
-    SharedViewModelStore().disposeByRouteId(id);
+    super.didPop(route, previousRoute);
+    SharedViewModelStore().disposeByRouteId(route.hashCode);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _ensureMarked();
+    super.didRemove(route, previousRoute);
+    SharedViewModelStore().disposeByRouteId(route.hashCode);
   }
 }
 
@@ -268,12 +282,14 @@ class SharedViewModelScope<T extends ViewModel> extends StatefulWidget {
   State<SharedViewModelScope<T>> createState() =>
       _SharedViewModelScopeState<T>();
 
+  /// Returns the nearest [T] provided by a [SharedViewModelScope], or null.
   static T? maybeOf<T extends ViewModel>(BuildContext context) {
     final inherited =
         context.dependOnInheritedWidgetOfExactType<_ViewModelInherited<T>>();
     return inherited?.viewModel;
   }
 
+  /// Returns the nearest [T] provided by a [SharedViewModelScope].
   static T of<T extends ViewModel>(BuildContext context) {
     final inherited =
         context.dependOnInheritedWidgetOfExactType<_ViewModelInherited<T>>();
@@ -318,14 +334,19 @@ extension ViewModelCreationExtension on BuildContext {
       return SharedViewModelStore().get<T>()!;
     }
 
-    final routeId = ModalRoute.of(this)?.hashCode ?? 0;
+    final route = ModalRoute.of(this);
+    if (route == null) {
+      throw FlutterError(
+        'createSharedViewModel<$T> must be called from a widget inside a route, so the ViewModel can be disposed when that route leaves.',
+      );
+    }
     if (!SharedViewModelStore._routeObserverAttached) {
       throw FlutterError(
         'SharedViewModelStore: ViewModelRouteObserver must be attached to navigatorObservers in MaterialApp or GoRouter to support auto-cleanup.',
       );
     }
     return SharedViewModelStore()
-        .put(viewModel: create(), routeId: routeId);
+        .put(viewModel: create(), routeId: route.hashCode);
   }
 }
 

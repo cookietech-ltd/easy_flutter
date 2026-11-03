@@ -54,11 +54,12 @@ class _StateBuilderState<V> extends State<StateBuilder<V>> {
 }
 
 /// A builder that listens to multiple [DataState] instances and rebuilds
-/// when any of them change. The [builder] receives the current values
-/// of all states as a list.
-class MultiStateBuilder extends StatefulWidget {
+/// when any of them change.
+///
+/// Read typed values from the states themselves (`vm.counter.value`) rather
+/// than casting entries of `values`.
+class MultiStateBuilder extends StatelessWidget {
   final List<DataState<dynamic>> states;
-  final List<void Function(dynamic value)?>? listeners;
   final Widget Function(BuildContext context, List<dynamic> values, Widget? child) builder;
   final Widget? child;
 
@@ -67,52 +68,16 @@ class MultiStateBuilder extends StatefulWidget {
     required this.states,
     required this.builder,
     this.child,
-    this.listeners,
   });
 
   @override
-  State<MultiStateBuilder> createState() => _MultiStateBuilderState();
-}
-
-class _MultiStateBuilderState extends State<MultiStateBuilder> {
-  final List<VoidCallback> _stateListeners = [];
-  final List<VoidCallback?> _externalListeners = [];
-
-  @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < widget.states.length; i++) {
-      final state = widget.states[i];
-      void onStateChanged() {
-        if (mounted) setState(() {});
-      }
-      state.addListener(onStateChanged);
-      _stateListeners.add(onStateChanged);
-
-      VoidCallback? externalCb;
-      if (widget.listeners != null && i < widget.listeners!.length && widget.listeners![i] != null) {
-        externalCb = () => widget.listeners![i]?.call(state.value);
-        state.addListener(externalCb);
-      }
-      _externalListeners.add(externalCb);
-    }
-  }
-
-  @override
-  void dispose() {
-    for (int i = 0; i < widget.states.length; i++) {
-      widget.states[i].removeListener(_stateListeners[i]);
-      if (_externalListeners[i] != null) {
-        widget.states[i].removeListener(_externalListeners[i]!);
-      }
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final values = widget.states.map((s) => s.value).toList();
-    return widget.builder(context, values, widget.child);
+    return ListenableBuilder(
+      listenable: Listenable.merge(states),
+      builder: (context, child) =>
+          builder(context, [for (final s in states) s.value], child),
+      child: child,
+    );
   }
 }
 

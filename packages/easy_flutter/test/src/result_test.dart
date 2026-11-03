@@ -4,7 +4,7 @@ import 'package:easy_flutter/src/result.dart';
 void main() {
   group('Result tests', () {
     test('Result.ok returns correct value', () {
-      const result = Result.ok('success');
+      const result = Result<String>.ok('success');
       expect(result is Ok, isTrue);
       if (result is Ok<String>) {
         expect(result.value, 'success');
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('Result.when calls onSuccess when Ok', () {
-      const result = Result.ok('success');
+      const result = Result<String>.ok('success');
       bool successCalled = false;
       bool errorCalled = false;
 
@@ -66,7 +66,7 @@ void main() {
     });
 
     test('Result.map transforms Ok value', () {
-      const result = Result.ok(1);
+      const result = Result<int>.ok(1);
       final mapped = result.map((value) => value.toString());
       expect(mapped is Ok<String>, isTrue);
       if (mapped is Ok<String>) {
@@ -85,9 +85,9 @@ void main() {
     });
 
     test('Result hashing and equality', () {
-      const result1 = Result.ok('a');
-      const result2 = Result.ok('a');
-      const result3 = Result.ok('b');
+      const result1 = Result<String>.ok('a');
+      const result2 = Result<String>.ok('a');
+      const result3 = Result<String>.ok('b');
 
       final ex = Exception('e');
       final err1 = Result<String>.error(ex);

@@ -1,6 +1,6 @@
 # easy_flutter
 
-A lightweight, zero-third-party-dependency architecture package for Flutter providing MVVM state management primitives, a sealed `Result` type, and clean architecture contracts.
+A lightweight, zero-dependency architecture package for Flutter providing MVVM state management primitives, a sealed `Result` type, and clean architecture contracts.
 
 ## Core Concepts
 
@@ -33,11 +33,7 @@ final cmd = CommandState<User>(
   action: () => userRepository.fetchCurrent(),
 );
 
-await cmd.execute(
-  onLoading: (loading) => print('Loading: $loading'),
-  onSuccess: (user) => print('Got: ${user.name}'),
-  onError: (e) => print('Failed: $e'),
-);
+final result = await cmd.execute(); // Result<User>, or null if already running
 
 print(cmd.isLoading);  // false
 print(cmd.isSuccess);  // true
@@ -131,7 +127,7 @@ StateBuilder(
 // Multiple states
 MultiStateBuilder(
   states: [vm.counter, vm.name],
-  builder: (context, values, child) => Text('${values[0]} ${values[1]}'),
+  builder: (context, _, child) => Text('${vm.counter.value} ${vm.name.value}'),
 );
 
 // Command with loading/error handling

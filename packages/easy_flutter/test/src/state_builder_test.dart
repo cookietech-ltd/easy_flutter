@@ -61,7 +61,6 @@ void main() {
         MaterialApp(
           home: MultiStateBuilder(
             states: [state1, state2],
-            listeners: [(v) {}, (v) {}],
             builder: (context, values, child) {
               return Text('${values[0]} : ${values[1]}', textDirection: TextDirection.ltr);
             },
@@ -78,42 +77,6 @@ void main() {
       state2.value = 'B';
       await tester.pump();
       expect(find.text('1 : B'), findsOneWidget);
-    });
-
-    testWidgets('MultiStateBuilder cleans up listeners on dispose', (WidgetTester tester) async {
-      final state1 = MutableState<int>(initialValue: 0);
-      final state2 = MutableState<int>(initialValue: 0);
-      int listener1Calls = 0;
-      int listener2Calls = 0;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MultiStateBuilder(
-            states: [state1, state2],
-            listeners: [
-              (v) => listener1Calls++,
-              (v) => listener2Calls++,
-            ],
-            builder: (context, values, child) => Text('${values[0]},${values[1]}'),
-          ),
-        ),
-      );
-
-      state1.value = 1;
-      state2.value = 1;
-      await tester.pump();
-      expect(listener1Calls, 1);
-      expect(listener2Calls, 1);
-
-      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
-      await tester.pump();
-
-      listener1Calls = 0;
-      listener2Calls = 0;
-      state1.value = 2;
-      state2.value = 2;
-      expect(listener1Calls, 0, reason: 'Listener 1 should be removed on dispose');
-      expect(listener2Calls, 0, reason: 'Listener 2 should be removed on dispose');
     });
 
     testWidgets('CommandBuilder displays outputs', (WidgetTester tester) async {

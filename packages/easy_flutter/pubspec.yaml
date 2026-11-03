@@ -1,15 +1,14 @@
 name: easy_flutter
-description: A clean architecture state management core logic.
-version: 1.0.0
+description: Flutter MVVM + Command state management on ChangeNotifier. Route-scoped ViewModels, built-in loading, error and paging states, no dependencies.
+version: 2.0.0
 publish_to: 'none'
 
 environment:
-  sdk: '>=3.2.6 <4.0.0'
+  sdk: ^3.8.0
 
 dependencies:
   flutter:
     sdk: flutter
-  collection: ^1.18.0
 
 dev_dependencies:
   flutter_test:

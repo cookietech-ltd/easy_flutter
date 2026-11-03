@@ -19,7 +19,13 @@ class _HomeScreenState extends ScreenState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    vm.loadProducts(onError: onError);
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    if (await vm.loadProducts() case Error(:final error) when mounted) {
+      onError(error);
+    }
   }
 
   @override

@@ -11,21 +11,16 @@ class HomeViewModel extends ViewModel {
   void onInit() {
     super.onInit();
     _getProductsUseCase = inject<GetProductsUseCase>();
-    products = createCommandState<List<ProductEntity>>();
+    products = createCommandState<List<ProductEntity>>(action: _fetchProducts);
   }
 
-  Future<void> loadProducts({
-    ErrorCallback? onError,
-  }) async {
-    await products.executeExact(
-      action: () async {
-        final result = await _getProductsUseCase.call();
-        return switch (result) {
-          Ok(value: final v) => v,
-          Error(error: final e) => throw e,
-        };
-      },
-      onError: onError,
-    );
+  Future<Result<List<ProductEntity>>?> loadProducts() => products.execute();
+
+  Future<List<ProductEntity>> _fetchProducts() async {
+    final result = await _getProductsUseCase.call();
+    return switch (result) {
+      Ok(value: final v) => v,
+      Error(error: final e) => throw e,
+    };
   }
 }

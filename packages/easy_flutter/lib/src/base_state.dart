@@ -7,12 +7,13 @@ import 'view_model.dart';
 /// Tracks created ViewModels and disposes non-shared ones automatically.
 /// Extend this in your feature screen states.
 abstract class BaseState<T extends StatefulWidget> extends State<T> {
+  /// ViewModels created with [factoryViewModel], disposed with this state.
   final List<ViewModel> viewModelRefs = [];
 
   @override
   void initState() {
-    initializeListener();
     super.initState();
+    initializeListener();
   }
 
   @override
